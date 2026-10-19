@@ -1,0 +1,635 @@
+---
+// A Wireshark-style view of loading example.com, using real packet bytes
+
+interface Entry {
+  depth: number;
+  text: string;
+  data?: number[];
+  filter?: string;
+  open?: boolean; // Expanded or collapsed, or undefined if it has no children
+  dwell?: number;
+}
+
+const STEP = 850; // How long each field is highlighted, in ms
+
+const capture = [
+  ['1', '0.000000', '192.168.1.20', '1.1.1.1', 'DNS', 'Standard query 0x3f1a A example.com'],
+  [
+    '2',
+    '0.014211',
+    '1.1.1.1',
+    '192.168.1.20',
+    'DNS',
+    'Standard query response 0x3f1a A example.com A 93.184.215.14',
+  ],
+  ['3', '0.015902', '192.168.1.20', '93.184.215.14', 'TCP', '51344 → 443 [SYN] Seq=0 Win=64240'],
+  ['4', '0.112480', '93.184.215.14', '192.168.1.20', 'TCP', '443 → 51344 [SYN, ACK] Seq=0 Ack=1'],
+  ['5', '0.112611', '192.168.1.20', '93.184.215.14', 'TCP', '51344 → 443 [ACK] Seq=1 Ack=1'],
+  ['6', '0.113020', '192.168.1.20', '93.184.215.14', 'TLSv1.3', 'Client Hello (SNI=example.com)'],
+  ['7', '0.209877', '93.184.215.14', '192.168.1.20', 'TLSv1.3', 'Server Hello'],
+  ['8', '0.209902', '192.168.1.20', '93.184.215.14', 'TCP', '51344 → 443 [ACK] Seq=518 Ack=128'],
+];
+
+const hex = (h: string) =>
+  (h.replace(/[^0-9a-f]/gi, '').match(/../g) ?? []).map((b) => parseInt(b, 16));
+const u16 = (n: number) => [n >> 8, n & 0xff];
+const ip = (addr: string) => addr.split('.').map(Number);
+
+// The checksum used in IP, UDP and TCP headers
+const checksum = (data: number[]) => {
+  let sum = 0;
+  for (let i = 0; i < data.length; i += 2) sum += (data[i] << 8) + (data[i + 1] ?? 0);
+  while (sum >> 16) sum = (sum & 0xffff) + (sum >> 16);
+  return ~sum & 0xffff;
+};
+
+const ipv4 = (src: string, dst: string, proto: number, id: number, ttl: number, body: number) => {
+  const header = [0x45, 0, ...u16(20 + body), ...u16(id), 0x40, 0, ttl, proto, 0, 0];
+  header.push(...ip(src), ...ip(dst));
+  header.splice(10, 2, ...u16(checksum(header)));
+  return header;
+};
+
+// UDP and TCP checksums also cover the IP addresses
+const withChecksum = (src: string, dst: string, proto: number, segment: number[], at: number) => {
+  const sum = checksum([...ip(src), ...ip(dst), 0, proto, ...u16(segment.length), ...segment]);
+  segment.splice(at, 2, ...u16(sum || 0xffff));
+  return segment;
+};
+
+const udp = (src: string, dst: string, ports: [number, number], payload: number[]) => {
+  const segment = [...u16(ports[0]), ...u16(ports[1]), ...u16(8 + payload.length), 0, 0];
+  return withChecksum(src, dst, 17, [...segment, ...payload], 6).slice(0, 8);
+};
+
+// A TCP header with the usual flags and options
+const tcp = (
+  src: string,
+  dst: string,
+  ports: [number, number],
+  seq: string,
+  ack: string,
+  payload: number[],
+) => {
+  const segment = [...u16(ports[0]), ...u16(ports[1]), ...hex(seq), ...hex(ack), 0x80, 0x18];
+  segment.push(...u16(501), 0, 0, 0, 0, ...hex('01 01 08 0a 6e 3b 09 c2 a1 07 4f 3d'));
+  return withChecksum(src, dst, 6, [...segment, ...payload], 16).slice(0, 32);
+};
+
+// Tree lines: a layer, a group, or a field
+const layer = (text: string, data: number[], filter: string): Entry => ({
+  depth: 0,
+  text,
+  data,
+  filter,
+  open: false,
+});
+const node = (depth: number, text: string, filter?: string): Entry => ({
+  depth,
+  text,
+  filter,
+  open: true,
+});
+const field = (depth: number, text: string, data: string, filter: string, dwell?: number) => ({
+  depth,
+  text,
+  data: hex(data),
+  filter,
+  dwell,
+});
+
+// Works out which bytes each line covers
+const dissect = (no: string, entries: Entry[]) => {
+  const bytes = entries.flatMap(({ data = [] }) => data);
+  let offset = 0;
+  const lines = entries.map(({ data, ...line }) => {
+    const start = offset;
+    offset += data?.length ?? 0;
+    return { ...line, start, len: data?.length ?? 0, walk: Boolean(data) };
+  });
+  // Groups cover all the fields inside them
+  lines.forEach((line, i) => {
+    if (line.walk) return;
+    const end = lines.findIndex((next, j) => j > i && next.depth <= line.depth);
+    const inner = lines.slice(i + 1, end < 0 ? undefined : end).filter((l) => l.walk);
+    line.len = inner.at(-1)!.start + inner.at(-1)!.len - line.start;
+  });
+  const total = bytes.length;
+  lines.unshift({
+    depth: 0,
+    text: `Frame ${no}: ${total} bytes on wire (${total * 8} bits), ${total} bytes captured`,
+    filter: 'frame',
+    open: false,
+    start: 0,
+    len: total,
+    walk: false,
+  });
+  // Hovering a byte picks the smallest field it's part of
+  const fieldOf = (byte: number) => {
+    let best = -1;
+    lines.forEach(({ start, len }, i) => {
+      if (i && byte >= start && byte < start + len && (best < 0 || len <= lines[best].len))
+        best = i;
+    });
+    return best;
+  };
+  const rows = Array.from({ length: Math.ceil(total / 16) }, (_, row) =>
+    bytes.slice(row * 16, row * 16 + 16).map((value, i) => ({
+      hex: value.toString(16).padStart(2, '0'),
+      char: value >= 0x20 && value < 0x7f ? String.fromCharCode(value) : '.',
+      field: fieldOf(row * 16 + i),
+    })),
+  );
+  return { no, lines, rows };
+};
+
+const CLIENT = '192.168.1.20';
+const RESOLVER = '1.1.1.1';
+const SERVER = '93.184.215.14';
+const ETH_IN = hex('3c 22 fb 7a 41 9e  f4 92 bf 1d 22 07  08 00');
+const ETH_TEXT = 'Ethernet II, Src: f4:92:bf:1d:22:07, Dst: 3c:22:fb:7a:41:9e';
+
+// Frame 2: the DNS reply with example.com's IP address
+const dnsBody = hex(`3f1a 8180 0001 0001 0000 0000
+  07 6578616d706c65 03 636f6d 00 0001 0001
+  c00c 0001 0001 00000d2a 0004 5db8d70e`);
+const dnsUdp = udp(RESOLVER, CLIENT, [53, 51291], dnsBody);
+const dnsAnswer = dissect('2', [
+  layer(ETH_TEXT, ETH_IN, 'eth'),
+  layer(
+    `Internet Protocol Version 4, Src: ${RESOLVER}, Dst: ${CLIENT}`,
+    ipv4(RESOLVER, CLIENT, 17, 0x9c1e, 58, dnsUdp.length + dnsBody.length),
+    'ip',
+  ),
+  layer('User Datagram Protocol, Src Port: 53, Dst Port: 51291', dnsUdp, 'udp'),
+  node(0, 'Domain Name System (response)', 'dns'),
+  field(1, 'Transaction ID: 0x3f1a', '3f1a', 'dns.id'),
+  {
+    ...field(1, 'Flags: 0x8180 Standard query response, No error', '8180', 'dns.flags'),
+    open: false,
+  },
+  field(1, 'Questions: 1', '0001', 'dns.count.queries'),
+  field(1, 'Answer RRs: 1', '0001', 'dns.count.answers'),
+  field(1, 'Authority RRs: 0', '0000', 'dns.count.auth_rr'),
+  field(1, 'Additional RRs: 0', '0000', 'dns.count.add_rr'),
+  node(1, 'Queries'),
+  node(2, 'example.com: type A, class IN'),
+  field(3, 'Name: example.com', '07 6578616d706c65 03 636f6d 00', 'dns.qry.name', 1800),
+  field(3, 'Type: A (1) (Host Address)', '0001', 'dns.qry.type'),
+  field(3, 'Class: IN (0x0001)', '0001', 'dns.qry.class'),
+  node(1, 'Answers'),
+  node(2, 'example.com: type A, class IN, addr 93.184.215.14'),
+  field(3, 'Name: example.com', 'c00c', 'dns.resp.name', 1400),
+  field(3, 'Type: A (1) (Host Address)', '0001', 'dns.resp.type'),
+  field(3, 'Class: IN (0x0001)', '0001', 'dns.resp.class'),
+  field(3, 'Time to live: 3370 (56 minutes, 10 seconds)', '00000d2a', 'dns.resp.ttl'),
+  field(3, 'Data length: 4', '0004', 'dns.resp.len'),
+  field(3, 'Address: 93.184.215.14', '5db8d70e', 'dns.a', 2400),
+]);
+
+// Frame 7: the server agrees on TLS 1.3 and a cipher
+const random = '6b8f0e3a d2c4917e 55a0f3b8 2e7d1c49 b06a8f23 c4d95e17 7af2830b 9e41c6d5';
+const session = '1c4ea7f0 3b92d85e 61c0f4a7 2d8b39e6 05f7a1c3 9e4d8b20 7c13f6e5 a8d02b94';
+const share = '9fd71c35 e06b8a42 c3f95d1e 7a20b64f 18e3c97d 52a6f0b8 3d4e91c2 6b07f5a8';
+const helloBody = hex(`16 0303 007a  02 000076 0303 ${random} 20 ${session} 1302 00 002e
+  0033 0024 001d 0020 ${share}  002b 0002 0304`);
+const helloTcp = tcp(SERVER, CLIENT, [443, 51344], '8a4f21c8', '1d0e7d58', helloBody);
+const serverHello = dissect('7', [
+  layer(ETH_TEXT, ETH_IN, 'eth'),
+  layer(
+    `Internet Protocol Version 4, Src: ${SERVER}, Dst: ${CLIENT}`,
+    ipv4(SERVER, CLIENT, 6, 0x6c3b, 56, helloTcp.length + helloBody.length),
+    'ip',
+  ),
+  layer(
+    `Transmission Control Protocol, Src Port: 443, Dst Port: 51344, Seq: 1, Ack: 518, Len: ${helloBody.length}`,
+    helloTcp,
+    'tcp',
+  ),
+  node(0, 'Transport Layer Security', 'tls'),
+  node(1, 'TLSv1.3 Record Layer: Handshake Protocol: Server Hello', 'tls.record'),
+  field(2, 'Content Type: Handshake (22)', '16', 'tls.record.content_type'),
+  field(2, 'Version: TLS 1.2 (0x0303)', '0303', 'tls.record.version'),
+  field(2, 'Length: 122', '007a', 'tls.record.length'),
+  node(2, 'Handshake Protocol: Server Hello', 'tls.handshake'),
+  field(3, 'Handshake Type: Server Hello (2)', '02', 'tls.handshake.type'),
+  field(3, 'Length: 118', '000076', 'tls.handshake.length'),
+  field(3, 'Version: TLS 1.2 (0x0303)', '0303', 'tls.handshake.version'),
+  field(3, `Random: ${random.replace(/ /g, '')}`, random, 'tls.handshake.random', 1400),
+  field(3, 'Session ID Length: 32', '20', 'tls.handshake.session_id_length'),
+  field(3, `Session ID: ${session.replace(/ /g, '')}`, session, 'tls.handshake.session_id'),
+  field(
+    3,
+    'Cipher Suite: TLS_AES_256_GCM_SHA384 (0x1302)',
+    '1302',
+    'tls.handshake.ciphersuite',
+    2400,
+  ),
+  field(3, 'Compression Method: null (0)', '00', 'tls.handshake.comp_method'),
+  field(3, 'Extensions Length: 46', '002e', 'tls.handshake.extensions_length'),
+  node(3, 'Extension: key_share (len=36) x25519', 'tls.handshake.extension'),
+  field(4, 'Type: key_share (51)', '0033', 'tls.handshake.extension.type'),
+  field(4, 'Length: 36', '0024', 'tls.handshake.extension.len'),
+  node(4, 'Key Share extension'),
+  node(5, 'Key Share Entry: Group: x25519, Key Exchange length: 32'),
+  field(6, 'Group: x25519 (29)', '001d', 'tls.handshake.extensions_key_share_group'),
+  field(
+    6,
+    'Key Exchange Length: 32',
+    '0020',
+    'tls.handshake.extensions_key_share_key_exchange_length',
+  ),
+  field(
+    6,
+    `Key Exchange: ${share.replace(/ /g, '')}`,
+    share,
+    'tls.handshake.extensions_key_share_key_exchange',
+    1400,
+  ),
+  node(3, 'Extension: supported_versions (len=2) TLS 1.3', 'tls.handshake.extension'),
+  field(4, 'Type: supported_versions (43)', '002b', 'tls.handshake.extension.type'),
+  field(4, 'Length: 2', '0002', 'tls.handshake.extension.len'),
+  field(
+    4,
+    'Supported Version: TLS 1.3 (0x0304)',
+    '0304',
+    'tls.handshake.extensions.supported_version',
+    2400,
+  ),
+]);
+
+const packets = [dnsAnswer, serverHello];
+const byteRows = Math.max(...packets.map(({ rows }) => rows.length));
+---
+
+<div class="packet-bytes" aria-hidden="true" style={`--byte-rows: ${byteRows}`}>
+  <div class="filter">dns || tcp.port == 443</div>
+  <div class="list">
+    <div class="packet head">
+      <span>No.</span><span>Time</span><span>Source</span><span>Destination</span>
+      <span>Protocol</span><span>Info</span>
+    </div>
+    <div class="list-window">
+      <div class="list-rows">
+        {
+          capture.map((cells) => (
+            <div class="packet" data-no={cells[0]}>
+              {cells.map((cell) => (
+                <span>{cell}</span>
+              ))}
+            </div>
+          ))
+        }
+      </div>
+    </div>
+  </div>
+  {
+    packets.map(({ no, lines, rows }, index) => (
+      <div class="decode" data-no={no} hidden={index > 0}>
+        <div class="tree">
+          <div class="tree-lines" style={`--count: ${lines.length}`}>
+            {lines.map(({ depth, text, open, start, len, filter, walk, dwell }) => (
+              <div
+                class="line"
+                style={`--depth: ${depth}`}
+                data-start={start}
+                data-len={len}
+                data-name={text.split(/[:,]/)[0]}
+                data-filter={filter}
+                data-dwell={walk ? (dwell ?? STEP) : undefined}
+              >
+                <i>{open === undefined ? '' : open ? '▾' : '▸'}</i>
+                <span>{text}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+        <div class="bytes">
+          {rows.map((row, i) => (
+            <div class="row">
+              <span class="offset">{(i * 16).toString(16).padStart(4, '0')}</span>
+              <span class="hex">
+                {row.map(({ hex, field }) => (
+                  <b data-field={field}>{hex}</b>
+                ))}
+              </span>
+              <span class="ascii">
+                {row.map(({ char, field }) => (
+                  <b data-field={field}>{char}</b>
+                ))}
+              </span>
+            </div>
+          ))}
+        </div>
+      </div>
+    ))
+  }
+  <div class="status"><span></span><code></code><span></span></div>
+</div>
+
+<script>
+  import { animate, mountAll, prefersReducedMotion } from './lifecycle';
+
+  const ROW_STEP = 170; // Time per row when moving down the list
+  const LIST_ROWS = 5; // Rows visible in the packet list
+
+  interface Step {
+    packet: number;
+    row: number;
+    line: number;
+    stale: boolean; // Moving between packets, with the old one dimmed
+    until: number;
+  }
+
+  mountAll('.packet-bytes', (root) => {
+    const list = root.querySelector<HTMLElement>('.list-rows')!;
+    const rows = [...list.querySelectorAll<HTMLElement>('.packet')];
+    const [name, filter, size] = root.querySelector('.status')!.children;
+    const decodes = [...root.querySelectorAll<HTMLElement>('.decode')].map((el) => ({
+      el,
+      no: Number(el.dataset.no),
+      lines: [...el.querySelectorAll<HTMLElement>('.line')],
+      hexes: [...el.querySelectorAll('.hex b')],
+      chars: [...el.querySelectorAll('.ascii b')],
+    }));
+
+    // Go through each packet's fields, then move to the next packet
+    const steps: Step[] = [];
+    let cycle = 0;
+    const push = (step: Omit<Step, 'until'>, ms: number) =>
+      steps.push({ ...step, until: (cycle += ms) });
+    decodes.forEach(({ no, lines }, packet) => {
+      let line = 0;
+      lines.forEach(({ dataset }, i) => {
+        if (!dataset.dwell) return;
+        line = i;
+        push({ packet, row: no, line, stale: false }, Number(dataset.dwell));
+      });
+      const next = decodes[(packet + 1) % decodes.length].no;
+      const direction = Math.sign(next - no);
+      for (let row = no; row !== next; row += direction)
+        push({ packet, row, line, stale: true }, ROW_STEP);
+      push({ packet, row: next, line, stale: true }, ROW_STEP * 2);
+    });
+
+    // Highlights a tree line and its bytes
+    const select = (decode: (typeof decodes)[number], index: number, scroll = true) => {
+      const { dataset } = decode.lines[index];
+      const start = Number(dataset.start);
+      const len = Number(dataset.len);
+      if (scroll) decode.el.style.setProperty('--selected', String(index));
+      decode.lines.forEach((el, i) => el.classList.toggle('sel', i === index));
+      decode.hexes.forEach((el, i) => {
+        const inside = i >= start && i < start + len;
+        el.classList.toggle('sel', inside);
+        decode.chars[i].classList.toggle('sel', inside);
+      });
+      name.textContent = dataset.name!;
+      filter.textContent = dataset.filter ? ` (${dataset.filter})` : '';
+      size.textContent = `, ${len} byte${len === 1 ? '' : 's'}`;
+    };
+
+    const show = ({ packet, row, line, stale }: Step) => {
+      decodes.forEach(({ el }, i) => (el.hidden = i !== packet));
+      rows.forEach((el) => el.classList.toggle('sel', Number(el.dataset.no) === row));
+      // Keep the selected row third from the top, where possible
+      const top = Math.max(0, Math.min(row - 3, rows.length - LIST_ROWS));
+      list.style.setProperty('--top', String(top));
+      root.classList.toggle('stale', stale);
+      select(decodes[packet], line);
+    };
+
+    // With reduced motion, show the first packet fully read
+    let current = prefersReducedMotion()
+      ? steps.filter((step) => step.packet === 0 && !step.stale).at(-1)!
+      : steps[0];
+    show(current);
+
+    // Hovering a byte or line selects it, and pauses until the pointer leaves
+    let hovering = false;
+    const onOver = (event: PointerEvent) => {
+      const target = event.target as Element;
+      const decode = decodes[current.packet];
+      const byte = target.closest<HTMLElement>('[data-field]');
+      const line = target.closest<HTMLElement>('.line');
+      const index = byte ? Number(byte.dataset.field) : line ? decode.lines.indexOf(line) : -1;
+      if (index < 0 || current.stale) return;
+      hovering = true;
+      // Only bytes scroll the tree, or it would move under the pointer
+      select(decode, index, Boolean(byte));
+    };
+    const onLeave = () => {
+      hovering = false;
+      show(current);
+    };
+    root.addEventListener('pointerover', onOver);
+    root.addEventListener('pointerleave', onLeave);
+
+    let clock = 0;
+    let last = 0;
+    const stop = prefersReducedMotion()
+      ? undefined
+      : animate(root, (t) => {
+          if (!hovering) clock += t - last;
+          last = t;
+          const step = steps.find(({ until }) => clock % cycle < until)!;
+          if (step !== current) show((current = step));
+        });
+
+    return () => {
+      stop?.();
+      root.removeEventListener('pointerover', onOver);
+      root.removeEventListener('pointerleave', onLeave);
+    };
+  });
+</script>
+
+<style lang="scss">
+  .packet-bytes {
+    --line: color-mix(in srgb, var(--text-color) 10%, transparent);
+    --muted: color-mix(in srgb, var(--text-color) 40%, transparent);
+    --lh: 1.6em;
+    position: absolute;
+    inset: 0;
+    // Also limited by width, so narrow screens don't leave the tree half empty
+    height: min(90cqh, 160cqw);
+    margin: auto;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    font-size: min(2.05cqw, 1.3cqh);
+    line-height: 1;
+    color: var(--text-color-secondary);
+    background: var(--background-raised);
+    border: 1px solid color-mix(in srgb, var(--text-color) 16%, transparent);
+    border-radius: 6px;
+    box-shadow: 0 2.5cqh 6cqh color-mix(in srgb, #000 35%, transparent);
+  }
+
+  // Wireshark shows a valid filter in green, so we use the brand colour
+  .filter {
+    margin: 0.7em;
+    padding: 0.5em 0.7em;
+    border-radius: 3px;
+    border: 1px solid color-mix(in srgb, var(--primary) 45%, transparent);
+    background: color-mix(in srgb, var(--primary) 12%, transparent);
+    font-family: var(--font-mono);
+    color: var(--text-color);
+  }
+
+  .list {
+    font-family: var(--font-mono);
+    border-top: 1px solid var(--line);
+  }
+
+  .packet {
+    display: grid;
+    grid-template-columns: 3ch 8ch 13ch 13ch 8ch 1fr;
+    column-gap: 1ch;
+    height: var(--lh);
+    align-items: center;
+    padding: 0 0.7em;
+    white-space: nowrap;
+    span {
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    &.head {
+      color: var(--text-color);
+      border-bottom: 1px solid var(--line);
+    }
+  }
+
+  .list-window {
+    height: calc(var(--lh) * 5);
+    overflow: hidden;
+  }
+
+  .list-rows {
+    translate: 0 calc(var(--top, 0) * -1 * var(--lh));
+    transition: translate 0.25s ease-out;
+  }
+
+  // Only the current packet is shown
+  .decode {
+    display: contents;
+    &[hidden] {
+      display: none;
+    }
+  }
+
+  .tree,
+  .bytes {
+    border-top: 1px solid var(--line);
+    transition: opacity 0.2s;
+    .stale & {
+      opacity: 0.3;
+    }
+  }
+
+  .tree {
+    flex: 1;
+    min-height: 0;
+    padding: 0.4em 0;
+    overflow: hidden;
+    // Stops lines peeking into the padding as they scroll
+    clip-path: inset(0.4em 0);
+    container-type: size;
+  }
+
+  // Keeps the selected line in view, without scrolling past either end
+  .tree-lines {
+    --max: calc(var(--count) * var(--lh) - 100cqh);
+    --scroll: clamp(0px, var(--selected, 0) * var(--lh) - 40cqh, var(--max));
+    translate: 0 calc(-1 * round(up, var(--scroll), var(--lh)));
+    transition: translate 0.35s ease-out;
+  }
+
+  .line {
+    display: flex;
+    height: var(--lh);
+    align-items: center;
+    padding: 0 0.7em 0 calc(0.7em + var(--depth) * 1.1em);
+    white-space: nowrap;
+    i {
+      flex: none;
+      width: 1.2em;
+      font-style: normal;
+      color: var(--muted);
+    }
+    span {
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+  }
+
+  .bytes {
+    height: calc(var(--lh) * var(--byte-rows) + 1em);
+    padding: 0.5em 0.7em;
+    font-family: var(--font-mono);
+  }
+
+  .row {
+    display: flex;
+    gap: 2ch;
+    height: var(--lh);
+    align-items: center;
+  }
+
+  .offset {
+    color: var(--muted);
+  }
+
+  // Fixed width, so a short last row lines up with the rest
+  .hex {
+    width: 49ch;
+    b {
+      padding: 0.15em 0.5ch;
+      // An extra gap after 8 bytes, like Wireshark
+      &:nth-child(8) {
+        margin-right: 1ch;
+      }
+    }
+  }
+
+  .ascii {
+    white-space: pre;
+    b {
+      padding: 0.15em 0;
+    }
+  }
+
+  b {
+    font-weight: normal;
+  }
+
+  .packet.sel,
+  .line.sel,
+  b.sel {
+    background: var(--primary);
+    color: var(--background);
+    i {
+      color: inherit;
+    }
+  }
+
+  .status {
+    padding: 0.6em 0.7em;
+    border-top: 1px solid var(--line);
+    background: var(--background);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    code {
+      font-family: var(--font-mono);
+      color: var(--primary);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .list-rows,
+    .tree-lines {
+      transition: none;
+    }
+  }
+</style>

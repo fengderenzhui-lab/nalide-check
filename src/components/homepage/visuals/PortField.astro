@@ -1,0 +1,713 @@
+---
+// Every TCP port as one dot, arranged so nearby port numbers sit together
+
+// Open ports the scan finds. Exposed ones shouldn't be public
+const openPorts = [
+  { port: 22, service: 'ssh', banner: 'OpenSSH 8.9p1', exposed: true },
+  { port: 80, service: 'http', banner: '301 to https' },
+  { port: 443, service: 'https', banner: 'nginx 1.25.3' },
+  { port: 8443, service: 'https-alt', banner: 'Jetty 9.4.51' },
+];
+---
+
+<div class="port-field" aria-hidden="true">
+  <div class="plot">
+    <p class="caption">tcp/0–65535 on 93.184.215.14</p>
+    <div class="labels" style={`--rows: ${openPorts.length}`}>
+      {
+        openPorts.map(({ port, service, banner, exposed }) => (
+          <div class:list={['open-port', { exposed }]} data-port={port}>
+            <span class="leader" />
+            <p class="label">
+              <b>{port}</b>
+              <span>{service}</span>
+              <em>{banner}</em>
+            </p>
+          </div>
+        ))
+      }
+    </div>
+    <div class="field">
+      <canvas></canvas>
+      <span class="region" style="--x: 0; --y: 33">well-known 0–1023</span>
+      <span class="region" style="--x: 129; --y: 129">dynamic 49152–65535</span>
+      <span class="region" style="--x: 1; --y: 236">registered 1024–49151</span>
+      <p class="tip"><b></b> <span></span> <em></em></p>
+    </div>
+  </div>
+
+  <dl class="readout">
+    <div class="count">
+      <dt>Ports scanned</dt>
+      <dd><b data-out="scanned">0</b> <span>of 65,536</span></dd>
+    </div>
+    <div>
+      <dt>Open</dt>
+      <dd class="is-open" data-out="open">0</dd>
+    </div>
+    <div>
+      <dt>Filtered</dt>
+      <dd data-out="filtered">0</dd>
+    </div>
+    <div>
+      <dt>Closed</dt>
+      <dd data-out="closed">0</dd>
+    </div>
+    <div>
+      <dt>Probing</dt>
+      <dd><span data-out="port">0</span> <span class="muted" data-out="range">well-known</span></dd>
+    </div>
+    <div>
+      <dt>Elapsed</dt>
+      <dd data-out="elapsed">0.00 s</dd>
+    </div>
+  </dl>
+</div>
+
+<script>
+  import { animate, mountAll, prefersReducedMotion } from './lifecycle';
+
+  const SIZE = 256;
+  const PORTS = SIZE * SIZE;
+  const WELL_KNOWN_MS = 1800; // Slower over the first 1024 common ports
+  const SWEEP_MS = 9200; // Time for all the rest
+  const SCAN_MS = WELL_KNOWN_MS + SWEEP_MS;
+  const HOLD_MS = 5000;
+  const FADE_MS = 600; // Same as the fade in the CSS
+  const CYCLE_MS = SCAN_MS + HOLD_MS + FADE_MS;
+  const TRAIL_MS = 260; // Length of the trail behind the scan
+  const TRAIL_BANDS = 6; // The trail fades out in this many steps
+  const RING_MS = 900; // How long the ring round a found port takes to grow
+  const MARKER = 3.5; // Half the size of an open port's square, in px
+
+  // Service names shown on hover
+  const SERVICES: Record<number, string> = {
+    21: 'ftp',
+    22: 'ssh',
+    23: 'telnet',
+    25: 'smtp',
+    53: 'domain',
+    80: 'http',
+    110: 'pop3',
+    143: 'imap',
+    443: 'https',
+    445: 'microsoft-ds',
+    993: 'imaps',
+    3306: 'mysql',
+    3389: 'ms-wbt-server',
+    5432: 'postgresql',
+    6379: 'redis',
+    8080: 'http-alt',
+    8443: 'https-alt',
+    27017: 'mongodb',
+  };
+
+  // Ports a typical firewall silently blocks
+  const FILTERED_RANGES =
+    '25 135-139 445 1433-1434 3306 3389 5432 5900-5910 6000-6063 6379 8000-8099 9200-9300 ' +
+    '10000-10999 20000-20479 27017-27019 30000-32767 33434-33534 60000-61023';
+
+  const enum State {
+    Closed,
+    Filtered,
+    Open,
+    Exposed,
+  }
+  const STATE_NAMES = ['closed', 'filtered', 'open', 'open'];
+
+  // Turns a position along the curve into x and y
+  const d2xy = (n: number, d: number): [number, number] => {
+    let x = 0;
+    let y = 0;
+    for (let s = 1, t = d; s < n; s *= 2, t >>= 2) {
+      const rx = 1 & (t >> 1);
+      const ry = 1 & (t ^ rx);
+      if (ry === 0) {
+        if (rx === 1) {
+          x = s - 1 - x;
+          y = s - 1 - y;
+        }
+        [x, y] = [y, x];
+      }
+      x += s * rx;
+      y += s * ry;
+    }
+    return [x, y];
+  };
+
+  // Where each port sits, and which are filtered. Only built once a field is shown
+  const buildTables = () => {
+    const xs = new Uint8Array(PORTS);
+    const ys = new Uint8Array(PORTS);
+    const portAt = new Uint16Array(PORTS); // Which port is at each spot
+    for (let d = 0; d < PORTS; d++) {
+      [xs[d], ys[d]] = d2xy(SIZE, d);
+      portAt[ys[d] * SIZE + xs[d]] = d;
+    }
+    const baseStates = new Uint8Array(PORTS);
+    for (const range of FILTERED_RANGES.split(' ')) {
+      const [from, to = from] = range.split('-').map(Number);
+      baseStates.fill(State.Filtered, from, to + 1);
+    }
+    // A running total of filtered ports, for quick counting
+    const filteredBefore = new Uint32Array(PORTS + 1);
+    baseStates.forEach((s, d) => (filteredBefore[d + 1] = filteredBefore[d] + Number(s > 0)));
+    return { xs, ys, portAt, baseStates, filteredBefore };
+  };
+  let tables: ReturnType<typeof buildTables> | undefined;
+
+  // A slight, fixed shade difference per port
+  const grain = (p: number) => {
+    let h = Math.imul(p ^ 0x9e3779b9, 0x85ebca6b);
+    h ^= h >>> 13;
+    return ((Math.imul(h, 0xc2b2ae35) >>> 0) % 1000) / 1000;
+  };
+
+  const rangeName = (p: number) => (p < 1024 ? 'well-known' : p < 49152 ? 'registered' : 'dynamic');
+  const fmt = new Intl.NumberFormat('en-GB').format;
+
+  // How many ports are done at a given time
+  const progressAt = (t: number) => {
+    if (t <= 0) return 0;
+    if (t <= WELL_KNOWN_MS) return Math.floor((t / WELL_KNOWN_MS) * 1024);
+    const k = Math.min(1, (t - WELL_KNOWN_MS) / SWEEP_MS);
+    const eased = k < 0.5 ? 2 * k * k : 1 - (-2 * k + 2) ** 2 / 2;
+    return Math.min(PORTS, 1024 + Math.floor((0.15 * k + 0.85 * eased) * (PORTS - 1024)));
+  };
+
+  type Rgb = [number, number, number];
+  const rgba = ([r, g, b]: Rgb, a = 1) => `rgba(${r}, ${g}, ${b}, ${a})`;
+
+  const mount = (root: HTMLElement) => {
+    const { xs, ys, portAt, baseStates, filteredBefore } = (tables ??= buildTables());
+    const still = prefersReducedMotion();
+    const canvas = root.querySelector('canvas')!;
+    const field = root.querySelector<HTMLElement>('.field')!;
+    const tip = root.querySelector<HTMLElement>('.tip')!;
+    const [tipPort, tipService, tipDetail] = tip.children;
+    const ctx = canvas.getContext('2d')!;
+    const outputs = [...root.querySelectorAll<HTMLElement>('[data-out]')];
+    const labels = [...root.querySelectorAll<HTMLElement>('.open-port')];
+    root.style.setProperty('--marker', `${MARKER}px`);
+
+    // Sort the labels left to right, so their lines never cross
+    const states = baseStates.slice();
+    const open = new Map<number, HTMLElement>();
+    labels
+      .map((el) => [Number(el.dataset.port), el] as const)
+      .sort(([a], [b]) => xs[a] - xs[b])
+      .forEach(([port, el], row) => {
+        states[port] = el.classList.contains('exposed') ? State.Exposed : State.Open;
+        el.style.cssText = `--x: ${xs[port]}; --y: ${ys[port]}; --row: ${row}`;
+        open.set(port, el);
+      });
+
+    // Theme colours as RGB, for drawing on the canvas
+    const read = (name: string): Rgb => {
+      ctx.fillStyle = getComputedStyle(root).getPropertyValue(name).trim();
+      const hex = String(ctx.fillStyle);
+      return [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16)) as Rgb;
+    };
+    const readPalette = () => {
+      const primary = read('--primary');
+      const trail = Array.from({ length: TRAIL_BANDS }, (_, b) =>
+        rgba(primary, ((b + 1) / TRAIL_BANDS) ** 2 * 0.85),
+      );
+      return { primary, danger: read('--danger'), text: read('--text-color'), trail };
+    };
+    let palette = readPalette();
+
+    // One pixel per port, scaled up over a faint outline of the curve
+    const cells = document.createElement('canvas');
+    cells.width = cells.height = SIZE;
+    const cellCtx = cells.getContext('2d')!;
+    const image = cellCtx.createImageData(SIZE, SIZE);
+    const curve = document.createElement('canvas');
+
+    let dpr = 1;
+    let grid = 0; // Field size in device pixels
+    let pad = 0; // Extra room round the field, so edge markers aren't cut off
+    let time = 0;
+    let painted = 0; // Ports drawn so far
+    let tail = 0; // Where the trail starts
+    let cycle = 0;
+    let hover: number | null = null;
+    let dirty = true;
+    const found = new Map<number, number>(); // When each open port was found
+    const shown: Record<string, string> = {};
+
+    const paintCurve = () => {
+      curve.width = curve.height = grid;
+      const c = curve.getContext('2d')!;
+      const n = 64;
+      const step = grid / n;
+      c.strokeStyle = rgba(palette.text, 0.07);
+      c.lineWidth = Math.max(1, dpr * 0.75);
+      c.beginPath();
+      for (let i = 0; i < n * n; i++) {
+        const [x, y] = d2xy(n, i);
+        c.lineTo((x + 0.5) * step, (y + 0.5) * step);
+      }
+      c.stroke();
+      // Box the well-known and dynamic port ranges
+      const cell = grid / SIZE;
+      c.strokeStyle = rgba(palette.text, 0.22);
+      c.lineWidth = dpr;
+      c.setLineDash([3 * dpr, 3 * dpr]);
+      c.strokeRect(0, 0, 32 * cell, 32 * cell);
+      c.strokeRect(128 * cell, 0, 128 * cell, 128 * cell);
+    };
+
+    const setCell = (d: number) => {
+      const s = states[d];
+      const [rgb, alpha] =
+        s === State.Exposed
+          ? [palette.danger, 255]
+          : s === State.Open
+            ? [palette.primary, 255]
+            : s === State.Filtered
+              ? [palette.primary, 52 + grain(d) * 22]
+              : [palette.text, 16 + grain(d) * 14];
+      image.data.set([...rgb, alpha], (ys[d] * SIZE + xs[d]) * 4);
+    };
+
+    // Draws newly scanned ports
+    const advance = (done: number, at: number) => {
+      let [x0, y0, x1, y1] = [SIZE, SIZE, 0, 0];
+      for (let d = painted; d < done; d++) {
+        setCell(d);
+        x0 = Math.min(x0, xs[d]);
+        y0 = Math.min(y0, ys[d]);
+        x1 = Math.max(x1, xs[d]);
+        y1 = Math.max(y1, ys[d]);
+      }
+      cellCtx.putImageData(image, 0, 0, x0, y0, x1 - x0 + 1, y1 - y0 + 1);
+      open.forEach((label, port) => {
+        if (port < painted || port >= done) return;
+        found.set(port, at);
+        label.classList.add('on');
+      });
+      painted = done;
+      dirty = true;
+    };
+
+    const write = (el: HTMLElement, value: string) => {
+      if (shown[el.dataset.out!] === value) return;
+      shown[el.dataset.out!] = value;
+      el.textContent = value;
+    };
+
+    const readout = (done: number, elapsed: number) => {
+      const openCount = [...open.keys()].filter((p) => p < done).length;
+      const filtered = filteredBefore[done];
+      const probing = Math.min(done, PORTS - 1);
+      const values: Record<string, string> = {
+        scanned: fmt(done),
+        open: String(openCount),
+        filtered: fmt(filtered),
+        closed: fmt(done - openCount - filtered),
+        port: fmt(probing),
+        range: rangeName(probing),
+        elapsed: `${(elapsed / 1000).toFixed(2)} s`,
+      };
+      outputs.forEach((el) => write(el, values[el.dataset.out!]));
+    };
+
+    // Fills in the tooltip for the hovered port
+    const describe = () => {
+      if (hover === null) return;
+      const state = hover < painted ? STATE_NAMES[states[hover]] : 'not scanned yet';
+      tipPort.textContent = String(hover);
+      tipService.textContent = SERVICES[hover] ?? 'unassigned';
+      tipDetail.textContent = `${rangeName(hover)}, ${state}`;
+    };
+
+    const draw = () => {
+      dirty = false;
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      if (!grid) return;
+      const cell = grid / SIZE;
+      ctx.setTransform(1, 0, 0, 1, pad, pad);
+      ctx.drawImage(curve, 0, 0);
+      ctx.imageSmoothingEnabled = false;
+      ctx.drawImage(cells, 0, 0, grid, grid);
+
+      // The scan head and its fading trail
+      if (painted > 0 && painted < PORTS) {
+        const from = Math.min(tail, painted - 1);
+        const length = painted - from;
+        for (let b = 0; b < TRAIL_BANDS; b++) {
+          ctx.fillStyle = palette.trail[b];
+          ctx.beginPath();
+          const end = from + Math.floor((length * (b + 1)) / TRAIL_BANDS);
+          for (let d = from + Math.floor((length * b) / TRAIL_BANDS); d < end; d++) {
+            ctx.rect(xs[d] * cell, ys[d] * cell, cell, cell);
+          }
+          ctx.fill();
+        }
+        const head = painted - 1;
+        ctx.fillStyle = rgba(palette.primary);
+        ctx.fillRect((xs[head] - 1) * cell, (ys[head] - 1) * cell, cell * 3, cell * 3);
+      }
+
+      // Open ports get a square, and a ring that grows when found
+      found.forEach((at, port) => {
+        const color = states[port] === State.Exposed ? palette.danger : palette.primary;
+        const cx = (xs[port] + 0.5) * cell;
+        const cy = (ys[port] + 0.5) * cell;
+        const k = Math.min(1, (time - at) / RING_MS);
+        if (k < 1) {
+          dirty = true;
+          ctx.strokeStyle = rgba(color, 1 - k);
+          ctx.lineWidth = 1.5 * dpr;
+          ctx.beginPath();
+          ctx.arc(cx, cy, (3 + k * 16) * dpr, 0, Math.PI * 2);
+          ctx.stroke();
+        }
+        const r = MARKER * dpr;
+        ctx.strokeStyle = rgba(color);
+        ctx.lineWidth = dpr;
+        ctx.strokeRect(cx - r, cy - r, r * 2, r * 2);
+      });
+
+      // Crosshair over the hovered port
+      if (hover !== null) {
+        describe();
+        const hx = (xs[hover] + 0.5) * cell;
+        const hy = (ys[hover] + 0.5) * cell;
+        ctx.strokeStyle = rgba(palette.text, 0.35);
+        ctx.lineWidth = dpr;
+        ctx.setLineDash([2 * dpr, 3 * dpr]);
+        ctx.beginPath();
+        ctx.moveTo(0, hy);
+        ctx.lineTo(grid, hy);
+        ctx.moveTo(hx, 0);
+        ctx.lineTo(hx, grid);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.strokeStyle = rgba(palette.text);
+        ctx.strokeRect(hx - 2.5 * dpr, hy - 2.5 * dpr, 5 * dpr, 5 * dpr);
+      }
+    };
+
+    // Redraw in the new colours when the theme changes
+    const recolour = () => {
+      palette = readPalette();
+      for (let d = 0; d < painted; d++) setCell(d);
+      cellCtx.putImageData(image, 0, 0);
+      if (grid) paintCurve();
+      dirty = true;
+      if (still) draw();
+    };
+
+    const reset = () => {
+      image.data.fill(0);
+      cellCtx.clearRect(0, 0, SIZE, SIZE);
+      painted = tail = 0;
+      found.clear();
+      labels.forEach((el) => el.classList.remove('on'));
+      if (grid) paintCurve();
+      dirty = true;
+    };
+
+    const resize = () => {
+      dpr = window.devicePixelRatio || 1;
+      grid = field.clientWidth * dpr;
+      pad = ((canvas.clientWidth - field.clientWidth) / 2) * dpr;
+      canvas.width = canvas.height = Math.round(canvas.clientWidth * dpr);
+      if (grid) paintCurve();
+      draw();
+    };
+
+    // Redraws every frame while scanning, otherwise only when needed
+    const frame = (t: number) => {
+      time = t;
+      if (Math.floor(t / CYCLE_MS) !== cycle) {
+        cycle = Math.floor(t / CYCLE_MS);
+        reset();
+      }
+      const phase = t % CYCLE_MS;
+      root.classList.toggle('fading', phase > SCAN_MS + HOLD_MS);
+      const done = progressAt(phase);
+      if (done > painted) advance(done, t);
+      tail = progressAt(phase - TRAIL_MS);
+      readout(done, Math.min(phase, SCAN_MS));
+      if (dirty || painted < PORTS) draw();
+    };
+
+    const onPointer = (event: PointerEvent) => {
+      const rect = field.getBoundingClientRect();
+      const x = Math.floor(((event.clientX - rect.left) / rect.width) * SIZE);
+      const y = Math.floor(((event.clientY - rect.top) / rect.height) * SIZE);
+      const inside = x >= 0 && y >= 0 && x < SIZE && y < SIZE;
+      const port = inside ? portAt[y * SIZE + x] : null;
+      if (port === hover) return;
+      hover = port;
+      tip.classList.toggle('on', inside);
+      if (inside) {
+        tip.style.cssText = `--hx: ${x}; --hy: ${y}`;
+        tip.classList.toggle('flip-x', x > SIZE * 0.55);
+        tip.classList.toggle('flip-y', y > SIZE * 0.85);
+      }
+      dirty = true;
+      if (still) draw();
+    };
+    const onLeave = () => {
+      hover = null;
+      tip.classList.remove('on');
+      dirty = true;
+      if (still) draw();
+    };
+
+    const resizeObserver = new ResizeObserver(resize);
+    resizeObserver.observe(field);
+
+    // Redraw when moved to a screen with a different pixel density, so it stays sharp
+    let density = matchMedia(`(resolution: ${devicePixelRatio}dppx)`);
+    const onDensity = () => {
+      density.removeEventListener('change', onDensity);
+      density = matchMedia(`(resolution: ${devicePixelRatio}dppx)`);
+      density.addEventListener('change', onDensity);
+      resize();
+    };
+    density.addEventListener('change', onDensity);
+
+    const themeObserver = new MutationObserver(recolour);
+    themeObserver.observe(document.documentElement, { attributeFilter: ['data-theme'] });
+    canvas.addEventListener('pointermove', onPointer);
+    canvas.addEventListener('pointerleave', onLeave);
+
+    // With reduced motion, just show the finished scan
+    let stop = () => {};
+    if (still) {
+      advance(PORTS, -RING_MS);
+      readout(PORTS, SCAN_MS);
+    } else {
+      stop = animate(root, frame);
+    }
+
+    return () => {
+      stop();
+      resizeObserver.disconnect();
+      density.removeEventListener('change', onDensity);
+      themeObserver.disconnect();
+      canvas.removeEventListener('pointermove', onPointer);
+      canvas.removeEventListener('pointerleave', onLeave);
+    };
+  };
+
+  mountAll('.port-field', mount);
+</script>
+
+<style lang="scss">
+  .port-field {
+    --f: min(84cqw, 50cqh); // Width of the field
+    --cell: calc(var(--f) / 256);
+    --rh: 3.7cqh; // Height of each label row
+    --muted: color-mix(in srgb, var(--text-color) 40%, transparent);
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 3cqh;
+    font-family: var(--font-mono);
+    font-size: max(11px, 1.55cqh);
+    color: var(--text-color-secondary);
+    transition: opacity 0.6s;
+    // Fades out at the end of each scan
+    &.fading {
+      opacity: 0;
+    }
+  }
+
+  .plot,
+  .readout {
+    width: var(--f);
+    margin: 0 auto;
+  }
+
+  .caption {
+    margin-bottom: 1.5cqh;
+    color: var(--muted);
+  }
+
+  // Labels for open ports, with lines down to each one
+  .labels {
+    position: relative;
+    height: calc(var(--rh) * var(--rows) + 1.5cqh);
+  }
+
+  .open-port {
+    --cx: calc((var(--x) + 0.5) * var(--cell));
+    --cy: calc((var(--y) + 0.5) * var(--cell));
+    --ry: calc((var(--row) + 0.5) * var(--rh));
+    --lx: calc(88 * var(--cell)); // Where labels start, right of all the lines
+    --accent: var(--primary);
+    &.exposed {
+      --accent: var(--danger);
+    }
+  }
+
+  .leader {
+    position: absolute;
+    left: calc(var(--cx) - 0.5px);
+    top: var(--ry);
+    width: calc(var(--lx) - var(--cx) - 0.6em);
+    height: calc(100% - var(--ry) + var(--cy) - var(--marker));
+    border-left: 1px solid var(--accent);
+    border-top: 1px solid var(--accent);
+    opacity: 0.7;
+    clip-path: inset(100% 0 0 0);
+  }
+
+  .label {
+    position: absolute;
+    left: var(--lx);
+    top: var(--ry);
+    width: calc(var(--f) - var(--lx));
+    translate: 0 -50%;
+    display: flex;
+    gap: 1.1em;
+    align-items: baseline;
+    white-space: nowrap;
+    opacity: 0;
+    b {
+      flex: none;
+      min-width: 4ch;
+      font-weight: normal;
+      color: var(--accent);
+    }
+    span {
+      flex: none;
+      min-width: 9ch;
+      color: var(--text-color);
+    }
+    em {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      font-style: normal;
+      color: var(--muted);
+    }
+  }
+
+  // Only animate in, so they clear instantly between scans
+  .on {
+    .leader {
+      clip-path: inset(0);
+      transition: clip-path 0.5s cubic-bezier(0.6, 0, 0.3, 1);
+    }
+    .label {
+      opacity: 1;
+      transition: opacity 0.4s 0.35s;
+    }
+  }
+
+  .field {
+    position: relative;
+    aspect-ratio: 1;
+    canvas {
+      --pad: 24px;
+      position: absolute;
+      inset: calc(var(--pad) * -1);
+      width: calc(100% + var(--pad) * 2);
+      height: calc(100% + var(--pad) * 2);
+      cursor: crosshair;
+    }
+  }
+
+  // Glow behind the text, so it's readable over the dots
+  .region {
+    position: absolute;
+    left: calc(var(--x) * var(--cell));
+    top: calc(var(--y) * var(--cell));
+    padding: 0.1em 0.4em;
+    font-family: var(--font-sans);
+    font-size: 0.85em;
+    color: var(--text-color-secondary);
+    text-shadow:
+      0 0 2px var(--background),
+      0 0 4px var(--background),
+      0 0 4px var(--background);
+    pointer-events: none;
+  }
+
+  .tip {
+    position: absolute;
+    left: calc((var(--hx) + 4) * var(--cell));
+    top: calc((var(--hy) + 4) * var(--cell));
+    translate: var(--tx, 0) var(--ty, 0);
+    padding: 0.35em 0.6em;
+    white-space: nowrap;
+    color: var(--text-color);
+    background: var(--background-raised);
+    border: 1px solid var(--background-lighter);
+    pointer-events: none;
+    visibility: hidden;
+    b {
+      font-weight: normal;
+      color: var(--primary);
+    }
+    em {
+      font-style: normal;
+      color: var(--muted);
+    }
+    &.on {
+      visibility: visible;
+    }
+    // Flip to the other side near the right and bottom edges
+    &.flip-x {
+      --tx: calc(-100% - 8 * var(--cell));
+    }
+    &.flip-y {
+      --ty: calc(-100% - 8 * var(--cell));
+    }
+  }
+
+  .readout {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1.6cqh 1.5em;
+    padding-top: 1.8cqh;
+    border-top: 1px solid color-mix(in srgb, var(--text-color) 14%, transparent);
+    div {
+      min-width: 0;
+    }
+    dt {
+      margin-bottom: 0.3em;
+      font-family: var(--font-sans);
+      font-size: 0.9em;
+      color: var(--muted);
+    }
+    dd {
+      color: var(--text-color);
+      font-variant-numeric: tabular-nums;
+      white-space: nowrap;
+    }
+    .count {
+      grid-column: 1 / -1;
+      b {
+        font-size: 2.3em;
+        font-weight: normal;
+      }
+      span {
+        color: var(--muted);
+      }
+    }
+    .is-open {
+      color: var(--primary);
+    }
+    .muted {
+      color: var(--muted);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .port-field,
+    .on .leader,
+    .on .label {
+      transition: none;
+    }
+  }
+</style>

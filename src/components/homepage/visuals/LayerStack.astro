@@ -100,29 +100,16 @@ const layers: Layer[] = [
 </div>
 
 <style lang="scss">
-  @use '@styles/global.scss' as *;
-
-  @property --gap {
-    syntax: '<length>';
-    inherits: true;
-    initial-value: 0px;
-  }
-
   .layer-stack {
-    position: relative;
-    width: 33vw;
-    height: 95vh;
-    container-type: size;
-    z-index: 2;
-    @include desktop-down {
-      display: none;
-    }
+    position: absolute;
+    inset: 0;
   }
 
-  // Isometric view of the layers, spaced by --gap and shifted down to sit centred
+  // The layers in 3D, centred, with --gap between each
   .stack {
     --size: min(56cqw, 44cqh);
-    --gap: min(12cqh, calc(var(--size) * 0.45));
+    --gap: min(11cqh, calc(var(--size) * 0.4));
+    --shift: calc((var(--count) - 1) * var(--gap) * 0.43);
     --cycle: 6s;
     position: absolute;
     inset: 0;
@@ -130,8 +117,7 @@ const layers: Layer[] = [
     width: var(--size);
     height: var(--size);
     transform-style: preserve-3d;
-    transform: translateY(calc((var(--count) - 1) * var(--gap) * 0.43)) rotateX(60deg)
-      rotateZ(-45deg);
+    transform: translateY(var(--shift)) rotateX(60deg) rotateZ(-45deg) scaleZ(1);
     animation: stack-breathe var(--cycle) ease-in-out infinite alternate;
     font-family: var(--font-mono);
     font-size: calc(var(--size) * 0.04);
@@ -139,7 +125,6 @@ const layers: Layer[] = [
 
   // Layer i (from the top) lifts and lights up as the scan plane passes through it
   .layer {
-    --edge: color-mix(in srgb, var(--primary) 35%, transparent);
     position: absolute;
     inset: 0;
     display: flex;
@@ -148,10 +133,20 @@ const layers: Layer[] = [
     padding: 7%;
     transform: translateZ(calc((var(--count) - 1 - var(--i)) * var(--gap)));
     background: color-mix(in srgb, var(--background-raised) 93%, transparent);
-    border: 1px solid var(--edge);
+    border: 1px solid color-mix(in srgb, var(--primary) 35%, transparent);
     color: var(--text-color-secondary);
-    animation: stack-inspect var(--cycle) ease-in-out infinite;
+    animation: layer-lift var(--cycle) ease-in-out infinite;
     animation-delay: calc(((var(--i) + 0.5) / var(--count) * 0.75 - 0.1) * var(--cycle));
+    &::after {
+      content: '';
+      position: absolute;
+      inset: -1px;
+      border: 1px solid var(--primary);
+      box-shadow: 0 0 3rem color-mix(in srgb, var(--primary) 35%, transparent);
+      opacity: 0;
+      animation: layer-glow var(--cycle) ease-in-out infinite;
+      animation-delay: inherit;
+    }
   }
 
   h4 {
@@ -224,15 +219,14 @@ const layers: Layer[] = [
     border: 1px solid var(--primary);
     background: color-mix(in srgb, var(--primary) 10%, transparent);
     box-shadow: 0 0 3rem color-mix(in srgb, var(--primary) 40%, transparent);
+    opacity: 0;
     animation: stack-scan var(--cycle) linear infinite;
   }
 
+  // Gently spreads the layers apart and back
   @keyframes stack-breathe {
-    from {
-      --gap: min(11cqh, calc(var(--size) * 0.4));
-    }
     to {
-      --gap: min(13.5cqh, calc(var(--size) * 0.5));
+      transform: translateY(calc(var(--shift) * 1.25)) rotateX(60deg) rotateZ(-45deg) scaleZ(1.25);
     }
   }
 
@@ -252,25 +246,33 @@ const layers: Layer[] = [
     }
   }
 
-  // Rises to meet the scan plane, peaking at 10% as it passes, then settles back
-  @keyframes stack-inspect {
+  // Each layer lifts and glows as the scan passes through it
+  @keyframes layer-lift {
     0%,
     30%,
     100% {
       translate: 0 0 0;
-      border-color: var(--edge);
-      box-shadow: none;
     }
     10% {
       translate: 0 0 2.5cqh;
-      border-color: var(--primary);
-      box-shadow: 0 0 3rem color-mix(in srgb, var(--primary) 35%, transparent);
+    }
+  }
+
+  @keyframes layer-glow {
+    0%,
+    30%,
+    100% {
+      opacity: 0;
+    }
+    10% {
+      opacity: 1;
     }
   }
 
   @media (prefers-reduced-motion: reduce) {
     .stack,
-    .layer {
+    .layer,
+    .layer::after {
       animation: none;
     }
     .scan {

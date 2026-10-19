@@ -1,0 +1,48 @@
+---
+import LayerStack from './visuals/LayerStack.astro';
+import TechDrawing from './visuals/TechDrawing.astro';
+import PortField from './visuals/PortField.astro';
+import PacketBytes from './visuals/PacketBytes.astro';
+---
+
+<!-- All visuals start hidden, then the script below shows just one -->
+<div class="hero-visual">
+  <div data-visual="layer-stack" hidden><LayerStack /></div>
+  <div data-visual="tech-drawing" hidden><TechDrawing /></div>
+  <div data-visual="port-field" hidden><PortField /></div>
+  <div data-visual="packet-bytes" hidden><PacketBytes /></div>
+</div>
+
+<script is:inline data-astro-rerun>
+  // Pick one at random, but not the same as last time
+  (() => {
+    const visuals = [...document.querySelectorAll('.hero-visual > [data-visual]')];
+    let last;
+    try {
+      last = localStorage.getItem('hero-visual');
+    } catch {}
+    const pool = visuals.filter((el) => el.dataset.visual !== last);
+    const pick = pool[Math.floor(Math.random() * pool.length)];
+    visuals.forEach((el) => el !== pick && el.remove());
+    pick.hidden = false;
+    try {
+      localStorage.setItem('hero-visual', pick.dataset.visual);
+    } catch {}
+  })();
+</script>
+
+<style lang="scss">
+  @use '@styles/global.scss' as *;
+
+  // Space beside the form that the visual fills
+  .hero-visual {
+    position: relative;
+    width: 33vw;
+    height: 95vh;
+    container-type: size;
+    z-index: 2;
+    @include desktop-down {
+      display: none;
+    }
+  }
+</style>

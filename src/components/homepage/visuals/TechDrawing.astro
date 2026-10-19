@@ -1,0 +1,633 @@
+---
+// A blueprint of example.com, drawn in line by line
+// Each shape's first class is how it appears: s = pen stroke, f = fade in, t = typed
+
+type Attrs = Record<string, string | number | undefined>;
+type Shape = Attrs & { tag: string; text?: string };
+
+const W = 520;
+const H = 840;
+const EY = 84; // Top of the front view
+const SY = 336; // Top of the cross-section
+const PEN_SPEED = 0.9; // Drawing speed
+
+const shapes: Shape[] = [];
+let cursor = 300; // When the next shape starts, in ms
+
+// Adds a shape, starting just after the previous one
+const plot = (tag: string, cls: string, attrs: Attrs, duration: number, gap = 32) => {
+  shapes.push({ tag, class: cls, 'data-at': cursor, 'data-dur': Math.round(duration), ...attrs });
+  cursor += gap;
+};
+
+const stroke = (tag: string, cls: string, attrs: Attrs, length: number) =>
+  plot(
+    tag,
+    `s ${cls}`,
+    { pathLength: 1, ...attrs },
+    Math.min(900, Math.max(120, length / PEN_SPEED)),
+  );
+const fill = (tag: string, cls: string, attrs: Attrs, duration = 260) =>
+  plot(tag, `f ${cls}`, attrs, duration);
+
+const line = (x1: number, y1: number, x2: number, y2: number, cls = 'thin', extra: Attrs = {}) =>
+  stroke('line', cls, { x1, y1, x2, y2, ...extra }, Math.hypot(x2 - x1, y2 - y1));
+const rect = (x: number, y: number, width: number, height: number, cls = 'ln', extra: Attrs = {}) =>
+  stroke('rect', cls, { x, y, width, height, ...extra }, 2 * (width + height));
+const circle = (cx: number, cy: number, r: number, cls = 'ln', extra: Attrs = {}) =>
+  stroke('circle', cls, { cx, cy, r, ...extra }, 2 * Math.PI * r);
+const text = (x: number, y: number, value: string, cls = 'note', extra: Attrs = {}) => {
+  const duration = Math.max(80, value.length * 16);
+  plot('text', `t ${cls}`, { x, y, text: value, ...extra }, duration, Math.min(duration / 2, 120));
+};
+const centred = (x: number, y: number, value: string, cls?: string) =>
+  text(x, y, value, cls, { 'text-anchor': 'middle' });
+
+// Arrowhead pointing at (x, y)
+const arrow = (x: number, y: number, angle: number, cls = 'dim-fill') =>
+  fill('path', cls, {
+    d: 'M0 0 L-7 -2.2 L-7 2.2 Z',
+    transform: `translate(${x} ${y}) rotate(${angle})`,
+  });
+
+// Horizontal measurement with a label
+const dimH = (x1: number, x2: number, y: number, fromY: number, label: string) => {
+  line(x1, fromY - 3, x1, y - 4);
+  line(x2, fromY - 3, x2, y - 4);
+  line(x1, y, x2, y);
+  arrow(x1, y, 180);
+  arrow(x2, y, 0);
+  centred((x1 + x2) / 2, y - 5, label, 'dim');
+};
+
+// Vertical measurement with a sideways label
+const dimV = (x: number, y1: number, y2: number, fromX: number, label: string) => {
+  const mid = (y1 + y2) / 2;
+  line(fromX + 3, y1, x + 4, y1);
+  line(fromX + 3, y2, x + 4, y2);
+  line(x, y1, x, y2);
+  arrow(x, y1, 270);
+  arrow(x, y2, 90);
+  text(x - 5, mid, label, 'dim', {
+    'text-anchor': 'middle',
+    transform: `rotate(-90 ${x - 5} ${mid})`,
+  });
+};
+
+// Numbered circle, with a line pointing to its part
+const balloon = (n: number, cx: number, cy: number, tx: number, ty: number, bad = false) => {
+  const item = { 'data-item': n };
+  const tone = bad ? ' bad' : '';
+  const k = 9 / Math.hypot(tx - cx, ty - cy);
+  line(cx + (tx - cx) * k, cy + (ty - cy) * k, tx, ty, `leader${tone}`, item);
+  fill('circle', `dot${tone}`, { cx: tx, cy: ty, r: 1.8, ...item });
+  circle(cx, cy, 9, `ring${tone}`, item);
+  text(cx, cy + 3.8, String(n), `num${tone}`, { 'text-anchor': 'middle', ...item });
+};
+
+// Sheet border, with grid references round the edge
+shapes.push({ tag: 'rect', class: 'backdrop', x: 8, y: 8, width: W - 16, height: H - 16 });
+rect(8, 8, W - 16, H - 16, 'frame');
+rect(24, 24, W - 48, H - 48, 'thin');
+const colW = (W - 48) / 4;
+for (let i = 0; i < 4; i++) {
+  const x = 24 + colW * i;
+  if (i) {
+    line(x, 8, x, 24);
+    line(x, H - 24, x, H - 8);
+  }
+  centred(x + colW / 2, 19.5, String(4 - i), 'zone');
+  centred(x + colW / 2, H - 12.5, String(4 - i), 'zone');
+}
+const rowH = (H - 48) / 6;
+for (let i = 0; i < 6; i++) {
+  const y = 24 + rowH * i;
+  if (i) {
+    line(8, y, 24, y);
+    line(W - 24, y, W - 8, y);
+  }
+  centred(16, y + rowH / 2 + 3.5, 'ABCDEF'[i], 'zone');
+  centred(W - 16, y + rowH / 2 + 3.5, 'ABCDEF'[i], 'zone');
+}
+
+// Front view of the page in a browser window
+rect(60, EY, 296, 200);
+line(60, EY + 18, 356, EY + 18, 'ln');
+[70, 79, 88].forEach((cx) => circle(cx, EY + 9, 2.5, 'ln-thin'));
+rect(100, EY + 4, 176, 10, 'ln-thin', { rx: 5 });
+rect(106, EY + 8, 6, 4.5, 'ln', { 'data-item': 5 });
+stroke('path', 'ln', { d: `M107.3 ${EY + 8} v-1.4 a1.7 1.7 0 0 1 3.4 0 v1.4`, 'data-item': 5 }, 8);
+text(117, EY + 11.6, 'https://example.com', 'url');
+// Navigation
+rect(68, EY + 24, 280, 12, 'ln-thin');
+rect(72, EY + 27, 22, 6);
+[270, 292, 314].forEach((x) => line(x, EY + 30, x + 15, EY + 30, 'ln-thin'));
+rect(334, EY + 26.5, 10, 7, 'ln-thin', { rx: 1.5 });
+// Hero
+rect(72, EY + 46, 150, 10);
+rect(72, EY + 60, 110, 10);
+line(72, EY + 80, 204, EY + 80, 'ln-thin');
+line(72, EY + 86, 186, EY + 86, 'ln-thin');
+rect(72, EY + 94, 48, 12, 'ln', { rx: 2 });
+rect(236, EY + 44, 112, 64);
+line(236, EY + 44, 348, EY + 108, 'ln-thin');
+line(348, EY + 44, 236, EY + 108, 'ln-thin');
+// Cards
+for (const x of [72, 168, 264]) {
+  rect(x, EY + 124, 84, 50, 'ln-thin');
+  rect(x + 6, EY + 130, 72, 22, 'ln-thin');
+  line(x + 6, EY + 160, x + 60, EY + 160, 'ln-thin');
+  line(x + 6, EY + 166, x + 44, EY + 166, 'ln-thin');
+}
+// Footer, with two third-party scripts
+line(60, EY + 184, 356, EY + 184, 'ln-thin');
+rect(300, EY + 189, 20, 6, 'ln bad', { 'data-item': 3 });
+rect(324, EY + 189, 20, 6, 'ln bad', { 'data-item': 3 });
+
+// Cut line A–A, where the cross-section below is taken
+const CY = EY + 116;
+fill('line', 'chain', { x1: 50, y1: CY, x2: 366, y2: CY });
+for (const [x, labelX] of [
+  [54, 42],
+  [362, 374],
+]) {
+  line(x - 4, CY, x + 4, CY, 'cut');
+  line(x, CY, x, CY + 13, 'cut');
+  arrow(x, CY + 16, 90, 'cut-fill');
+  centred(labelX, CY + 15, 'A', 'cut-label');
+}
+
+// Cross-section of the stack, each layer with its own hatching
+const layers = [
+  { name: 'page', h: 12 },
+  { name: 'HTTP/2', h: 34, hatch: 'td-iron', item: '4', dim: 'max-age 31536000' },
+  { name: 'TLS 1.3', h: 34, hatch: 'td-cross', item: '2', dim: 'valid 90 d' },
+  { name: 'TCP', h: 26, hatch: 'td-steel', dim: 'MSS 1460' },
+  { name: 'IPv4', h: 26, hatch: 'td-back', dim: 'MTU 1500' },
+  { name: 'DNS', h: 34, hatch: 'td-dots', item: '1 6', dim: 'TTL 3600' },
+].map((layer, i, all) => ({
+  ...layer,
+  y: SY + all.slice(0, i).reduce((sum, { h }) => sum + h, 0),
+}));
+
+layers.forEach(({ y, h, item }) => rect(60, y, 296, h, 'ln', { 'data-item': item }));
+layers.forEach(({ name, y, h, hatch }) => {
+  const attrs = { x: 60.6, y: y + 0.6, width: 294.8, height: h - 1.2 };
+  if (hatch) fill('rect', 'hatch', { ...attrs, fill: `url(#${hatch})` }, 500);
+  else fill('rect', 'hatch solid', attrs, 500);
+  if (h < 20) return;
+  // Blank behind the name, so it's readable
+  const width = name.length * 6.1 + 8;
+  fill('rect', 'knockout', { x: 350 - width, y: y + h / 2 - 6.5, width, height: 14 });
+  text(346, y + h / 2 + 3.5, name, 'layer', { 'text-anchor': 'end' });
+});
+
+// Dimensions
+dimH(60, 356, EY - 16, EY, '1.2 MB');
+dimV(412, EY, EY + 200, 356, 'TTFB 182 ms');
+layers.forEach(({ y, h, dim }) => {
+  if (!dim) return;
+  line(358, y, 378, y);
+  line(358, y + h, 378, y + h);
+  line(374, y, 374, y + h);
+  arrow(374, y, 270);
+  arrow(374, y + h, 90);
+  text(382, y + h / 2 + 3.6, dim, 'dim');
+});
+centred(208, EY + 224, 'Front elevation', 'view');
+centred(208, SY + 184, 'Section A–A', 'view');
+
+balloon(5, 38, EY + 36, 108, EY + 10);
+balloon(3, 332, EY + 226, 334, EY + 196, true);
+balloon(4, 38, SY + 24, 128, SY + 30, true);
+balloon(2, 38, SY + 62, 160, SY + 64);
+balloon(1, 38, SY + 122, 112, SY + 146);
+balloon(6, 38, SY + 152, 210, SY + 154);
+
+// Parts list
+const parts = [
+  { n: 1, part: 'A record', spec: '93.184.215.14', qty: 1 },
+  { n: 2, part: 'TLS certificate', spec: "Let's Encrypt R11", qty: 1 },
+  { n: 3, part: 'Third-party script', spec: 'gtm.js, fbevents.js', qty: 2, bad: true },
+  { n: 4, part: 'Cookie', spec: '_ga, _fbp, sid, no SameSite', qty: 3, bad: true },
+  { n: 5, part: 'HSTS header', spec: 'max-age 31536000; preload', qty: 1 },
+  { n: 6, part: 'Nameserver', spec: 'a.iana-servers.net', qty: 2 },
+];
+const TY = 540;
+const ROW = 17;
+const bottom = TY + ROW * (parts.length + 1);
+rect(24, TY, W - 48, bottom - TY, 'thin');
+parts.forEach((_, i) => line(24, TY + ROW * (i + 1), W - 24, TY + ROW * (i + 1)));
+[56, 186, 452].forEach((x) => line(x, TY, x, bottom));
+centred(40, TY + 12, 'Item', 'head');
+text(62, TY + 12, 'Part', 'head');
+text(192, TY + 12, 'Spec', 'head');
+centred(474, TY + 12, 'Qty', 'head');
+parts.forEach(({ n, part, spec, qty, bad }, i) => {
+  const y = TY + ROW * (i + 1);
+  const tone = bad ? ' bad' : '';
+  shapes.push({
+    tag: 'rect',
+    class: `hit${tone}`,
+    x: 24,
+    y,
+    width: W - 48,
+    height: ROW,
+    'data-item': n,
+  });
+  centred(40, y + 12.5, String(n), `cell mono${tone}`);
+  text(62, y + 12.5, part, 'cell');
+  text(192, y + 12.5, spec, `cell mono${tone}`);
+  centred(474, y + 12.5, String(qty), 'cell mono');
+});
+
+// Notes
+text(32, 682, 'Notes', 'head');
+[
+  '1. Measured from 93.184.215.14.',
+  '2. Remove x-powered-by header.',
+  '3. Items in red need attention.',
+  '4. Do not scale drawing.',
+].forEach((note, i) => text(32, 700 + i * 16, note));
+
+// Title block, bottom right
+const TX = 262;
+const cell = (x: number, y: number, caption: string, value: string, cls = 'value', extra = {}) => {
+  text(x, y, caption, 'caption');
+  text(x, y + 13, value, cls, extra);
+};
+rect(TX, 664, W - 24 - TX, 152, 'thin');
+[712, 742, 772].forEach((y) => line(TX, y, W - 24, y));
+line(379, 712, 379, 742);
+line(340, 742, 340, 772);
+line(418, 742, 418, 772);
+text(TX + 8, 690, 'example.com', 'title');
+text(TX + 8, 705, 'General arrangement');
+cell(TX + 8, 723, 'Drawn by', 'Web Check');
+cell(387, 723, 'Date', new Date().toISOString().slice(0, 10), 'value mono', { 'data-today': '' });
+cell(TX + 8, 753, 'Scale', '1:1');
+cell(348, 753, 'Sheet', '1 of 1');
+cell(426, 753, 'Rev', 'A');
+cell(TX + 8, 786, 'Drawing no.', 'WC-93184-215', 'dwg');
+---
+
+<div class="tech-drawing" aria-hidden="true">
+  <svg viewBox={`0 0 ${W} ${H}`}>
+    <defs>
+      <pattern
+        id="td-iron"
+        width="6"
+        height="6"
+        patternUnits="userSpaceOnUse"
+        patternTransform="rotate(45)"
+      >
+        <line class="hatch-line" y2="6"></line>
+      </pattern>
+      <pattern
+        id="td-back"
+        width="4.5"
+        height="4.5"
+        patternUnits="userSpaceOnUse"
+        patternTransform="rotate(-45)"
+      >
+        <line class="hatch-line" y2="4.5"></line>
+      </pattern>
+      <pattern
+        id="td-cross"
+        width="7"
+        height="7"
+        patternUnits="userSpaceOnUse"
+        patternTransform="rotate(45)"
+      >
+        <line class="hatch-line" y2="7"></line>
+        <line class="hatch-line" x2="7"></line>
+      </pattern>
+      <pattern
+        id="td-steel"
+        width="9"
+        height="9"
+        patternUnits="userSpaceOnUse"
+        patternTransform="rotate(45)"
+      >
+        <line class="hatch-line" y2="9"></line>
+        <line class="hatch-line" x1="3" x2="3" y2="9"></line>
+      </pattern>
+      <pattern id="td-dots" width="6" height="6" patternUnits="userSpaceOnUse">
+        <circle class="hatch-dot" cx="1.5" cy="1.5" r="0.8"></circle>
+        <circle class="hatch-dot" cx="4.5" cy="4.5" r="0.8"></circle>
+      </pattern>
+    </defs>
+    {shapes.map(({ tag: Tag, text, ...attrs }) => <Tag {...attrs}>{text}</Tag>)}
+  </svg>
+</div>
+
+<script>
+  import { animate, mountAll, prefersReducedMotion } from './lifecycle';
+
+  const HOLD_MS = 9000;
+  const FADE_MS = 800; // Same as the fade in the CSS
+  const STEP_MS = 1500; // How long each part stays highlighted
+
+  mountAll('.tech-drawing', (root) => {
+    const sheet = root.querySelector('svg')!;
+    const count = root.querySelectorAll('.hit').length;
+    root.querySelectorAll('[data-today]').forEach((el) => {
+      el.textContent = new Date().toLocaleDateString('en-CA');
+    });
+
+    // Highlights an item's number, part and table row together
+    let highlighted: string | null = null;
+    let hovered: string | null = null;
+    const highlight = (item: string | null) => {
+      if (item === highlighted) return;
+      highlighted = item;
+      root.querySelectorAll('.hl').forEach((el) => el.classList.remove('hl'));
+      if (item)
+        root.querySelectorAll(`[data-item~="${item}"]`).forEach((el) => el.classList.add('hl'));
+    };
+    const onHover = (event: PointerEvent) => {
+      const target = event.type === 'pointerover' ? event.target : event.relatedTarget;
+      const hit = target instanceof Element ? target.closest<SVGElement>('.hit') : null;
+      hovered = hit?.dataset.item ?? null;
+      highlight(hovered);
+    };
+    sheet.addEventListener('pointerover', onHover);
+    sheet.addEventListener('pointerout', onHover);
+    const unlisten = () => {
+      sheet.removeEventListener('pointerover', onHover);
+      sheet.removeEventListener('pointerout', onHover);
+    };
+
+    // CSS already shows the finished drawing
+    if (prefersReducedMotion()) {
+      root.classList.add('drawn');
+      return unlisten;
+    }
+
+    const items = [...sheet.querySelectorAll<SVGElement>('[data-at]')].map((el) => ({
+      el,
+      kind: el.classList[0],
+      at: Number(el.dataset.at),
+      duration: Number(el.dataset.dur),
+      chars: el.textContent?.length || 1,
+      shown: 0,
+    }));
+    const drawn = Math.max(...items.map(({ at, duration }) => at + duration));
+    const cycle = drawn + HOLD_MS + FADE_MS;
+
+    // Draws everything in as far as it's got, only updating what changed
+    const render = (t: number) => {
+      for (const item of items) {
+        let p = Math.min(1, Math.max(0, (t - item.at) / item.duration));
+        if (item.kind === 't') p = Math.ceil(p * item.chars) / item.chars;
+        if (p === item.shown) continue;
+        item.shown = p;
+        const { style } = item.el;
+        if (item.kind === 's') style.strokeDashoffset = String(1 - p);
+        else if (item.kind === 'f') style.opacity = String(p);
+        else style.clipPath = `inset(0 ${100 - p * 100}% 0 0)`;
+      }
+    };
+
+    const stop = animate(root, (time) => {
+      const t = time % cycle;
+      render(t);
+      // Rows can only be hovered once the drawing is finished
+      const holding = t > drawn && t <= drawn + HOLD_MS;
+      root.classList.toggle('drawn', holding);
+      root.classList.toggle('fading', t > drawn + HOLD_MS);
+      if (!holding) hovered = null;
+      // Then highlight each part in turn
+      const step = Math.floor((t - drawn - 600) / STEP_MS);
+      if (!hovered) highlight(step >= 0 && step < count ? String(step + 1) : null);
+    });
+
+    return () => {
+      stop();
+      unlisten();
+    };
+  });
+</script>
+
+<style lang="scss">
+  .tech-drawing {
+    --line: color-mix(in srgb, var(--primary) 80%, transparent);
+    --muted: color-mix(in srgb, var(--text-color) 40%, transparent);
+    --hair: color-mix(in srgb, var(--text-color) 38%, transparent);
+    --faint: color-mix(in srgb, var(--text-color) 22%, transparent);
+    position: absolute;
+    inset: 0;
+  }
+
+  svg {
+    display: block;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    transition: opacity 0.8s;
+    .fading & {
+      opacity: 0;
+    }
+  }
+
+  // Hidden until drawn in
+  .s {
+    fill: none;
+    stroke-dasharray: 1;
+    stroke-dashoffset: 1;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    transition:
+      stroke 0.25s,
+      stroke-width 0.25s;
+  }
+  .f {
+    opacity: 0;
+  }
+  .t {
+    clip-path: inset(0 100% 0 0);
+  }
+
+  .hatch-line {
+    stroke: color-mix(in srgb, var(--primary) 42%, transparent);
+    stroke-width: 0.7;
+  }
+  .hatch-dot {
+    fill: color-mix(in srgb, var(--primary) 55%, transparent);
+  }
+  .solid {
+    fill: color-mix(in srgb, var(--primary) 32%, transparent);
+  }
+
+  .frame {
+    stroke: var(--hair);
+    stroke-width: 1;
+  }
+  .thin {
+    stroke: var(--faint);
+    stroke-width: 0.7;
+  }
+  .ln {
+    stroke: var(--line);
+    stroke-width: 1.15;
+  }
+  .ln-thin {
+    stroke: var(--line);
+    stroke-width: 0.7;
+  }
+  .dim-fill {
+    fill: var(--hair);
+  }
+  .chain {
+    stroke: var(--hair);
+    stroke-width: 0.7;
+    stroke-dasharray: 16 3 2 3;
+  }
+  .cut {
+    stroke: var(--text-color-secondary);
+    stroke-width: 1.8;
+  }
+  .cut-fill {
+    fill: var(--text-color-secondary);
+  }
+  .backdrop {
+    fill: color-mix(in srgb, var(--background) 88%, transparent);
+  }
+  .knockout {
+    fill: var(--background);
+  }
+
+  text {
+    fill: var(--text-color-secondary);
+    font-family: var(--font-sans);
+    font-size: 10.5px;
+  }
+  .zone {
+    font-size: 9px;
+    fill: var(--muted);
+  }
+  .url {
+    font-family: var(--font-mono);
+    font-size: 8px;
+    fill: var(--muted);
+  }
+  .dim,
+  .layer,
+  .mono,
+  .num,
+  .dwg {
+    font-family: var(--font-mono);
+  }
+  .dim,
+  .cell,
+  .num,
+  .value,
+  .title,
+  .cut-label {
+    fill: var(--text-color);
+  }
+  .layer {
+    font-size: 10px;
+    fill: var(--primary);
+  }
+  .view {
+    font-size: 11px;
+    font-style: italic;
+  }
+  .cut-label {
+    font-size: 12px;
+    font-weight: 600;
+  }
+  .head {
+    font-size: 10px;
+    fill: var(--muted);
+  }
+  .cell.mono {
+    fill: var(--text-color-secondary);
+  }
+  .caption {
+    font-size: 8.5px;
+    fill: var(--muted);
+  }
+  .value {
+    font-size: 11px;
+  }
+  .title {
+    font-size: 19px;
+    font-weight: 700;
+  }
+  .dwg {
+    font-size: 15px;
+    fill: var(--primary);
+  }
+
+  // Numbered circles and their lines
+  .ring,
+  .leader {
+    stroke: var(--line);
+    stroke-width: 0.9;
+  }
+  .ring {
+    fill: var(--background);
+    transition:
+      fill 0.25s,
+      stroke 0.25s;
+  }
+  .dot {
+    fill: var(--line);
+  }
+  .num {
+    transition: fill 0.25s;
+  }
+
+  // Red for anything that needs attention
+  .s.bad {
+    stroke: var(--danger);
+  }
+  .f.bad,
+  .t.bad {
+    fill: var(--danger);
+  }
+
+  // Table rows highlight their part when hovered
+  .hit {
+    fill: transparent;
+    transition: fill 0.25s;
+    .drawn & {
+      pointer-events: all;
+    }
+    &.hl {
+      fill: color-mix(in srgb, var(--primary) 12%, transparent);
+    }
+    &.bad.hl {
+      fill: color-mix(in srgb, var(--danger) 14%, transparent);
+    }
+  }
+  .ring.hl {
+    fill: var(--primary);
+    stroke: var(--primary);
+    &.bad {
+      fill: var(--danger);
+      stroke: var(--danger);
+    }
+  }
+  .num.hl {
+    fill: var(--background);
+  }
+  .ln.hl {
+    stroke: var(--text-color);
+    stroke-width: 2.2;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .s {
+      stroke-dashoffset: 0;
+    }
+    .f {
+      opacity: 1;
+    }
+    .t {
+      clip-path: none;
+    }
+  }
+</style>
