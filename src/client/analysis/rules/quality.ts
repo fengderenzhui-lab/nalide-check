@@ -8,7 +8,7 @@ const LABELS: Record<string, string> = {
 };
 
 // Convert a 0..1 lighthouse score to a severity bucket
-const scoreSeverity = (score: number): Severity => {
+export const scoreSeverity = (score: number): Severity => {
   if (score >= 0.9) return 'pass';
   if (score >= 0.7) return 'info';
   if (score >= 0.5) return 'warning';

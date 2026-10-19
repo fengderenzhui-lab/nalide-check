@@ -1,7 +1,6 @@
-import chromium from '@sparticuz/chromium';
 import middleware from './_common/middleware.js';
 import { UA } from './_common/http.js';
-import { isBrowserMissing } from './_common/browser.js';
+import { chromium, isBrowserMissing } from './_common/browser.js';
 
 // Wappalyzer reads CHROMIUM_BIN at module load, so we must resolve
 // the path before importing it (hence the dynamic import in the handler)

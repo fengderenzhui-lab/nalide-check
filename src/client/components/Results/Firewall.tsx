@@ -1,18 +1,16 @@
-import styled from '@emotion/styled';
-import { Card } from 'client/components/Form/Card';
+import { Card, Note } from 'client/components/Form/Card';
 import Row from 'client/components/Form/Row';
-
-const Note = styled.small`
-  opacity: 0.5;
-  display: block;
-  margin-top: 0.5rem;
-`;
 
 const FirewallCard = (props: { data: any; title: string; actionButtons: any }): JSX.Element => {
   const data = props.data;
   return (
     <Card heading={props.title} actionButtons={props.actionButtons}>
-      <Row lbl="Firewall" val={data.hasWaf ? '✅ Yes' : '❌ No*'} />
+      <Row
+        lbl="Firewall"
+        val={data.hasWaf ? 'Yes' : 'No*'}
+        status={data.hasWaf ? 'pass' : 'warning'}
+        term="waf"
+      />
       {data.waf && <Row lbl="WAF" val={data.waf} />}
       {!data.hasWaf && (
         <Note>

@@ -19,32 +19,28 @@ const { tool, label, buttonLabel = 'Analyze', showCategories = false } = Astro.p
   <div class="controls">
     <AnimatedInput />
     <AnimatedButton label={buttonLabel}>
-      {
-        showCategories && (
-          <button
-            type="button"
-            class="toggle"
-            popovertarget="scan-categories"
-            aria-label="Run one category"
-          >
-            <Icon name="chevron" />
-          </button>
-        )
-      }
+      {showCategories && (
+        <button
+          type="button"
+          class="toggle"
+          popovertarget="scan-categories"
+          aria-label="Run one category"
+        >
+          <Icon name="chevron" />
+        </button>
+      )}
     </AnimatedButton>
   </div>
-  {
-    showCategories && (
-      <div id="scan-categories" class="categories" popover>
-        {categoryIds.map((id) => (
-          <button type="submit" name="tool" value={id}>
-            <Icon name={categories[id].icon} />
-            {categories[id].label}
-          </button>
-        ))}
-      </div>
-    )
-  }
+  {showCategories && (
+    <div id="scan-categories" class="categories" popover>
+      {categoryIds.map((id) => (
+        <button type="submit" name="tool" value={id}>
+          <Icon name={categories[id].icon} />
+          {categories[id].label}
+        </button>
+      ))}
+    </div>
+  )}
   {tool && <input type="hidden" name="tool" value={tool} />}
 </form>
 

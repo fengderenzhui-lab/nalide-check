@@ -1,6 +1,8 @@
 import { Card } from 'client/components/Form/Card';
 import Row, { ExpandableRow } from 'client/components/Form/Row';
+import { fromFindings } from 'client/components/misc/Icon';
 import type { Cookie } from 'client/utils/result-processor';
+import { checkCookie } from 'client/analysis/rules/cookies';
 
 export const parseHeaderCookies = (cookiesHeader: string[]): Cookie[] => {
   if (!cookiesHeader || !cookiesHeader.length) return [];
@@ -22,6 +24,12 @@ export const parseHeaderCookies = (cookiesHeader: string[]): Cookie[] => {
   return cookies;
 };
 
+// A cookie's status, from the security flags it's missing
+const cookieStatus = ({ name, attributes }: Cookie) => {
+  const flags = Object.keys(attributes).map((key) => key.toLowerCase());
+  return fromFindings(checkCookie(name, flags));
+};
+
 const CookiesCard = (props: { data: any; title: string; actionButtons: any }): JSX.Element => {
   const headerCookies = parseHeaderCookies(props.data.headerCookies) || [];
   const clientCookies = props.data.clientCookies || [];
@@ -29,28 +37,29 @@ const CookiesCard = (props: { data: any; title: string; actionButtons: any }): J
   return (
     <Card heading={props.title} actionButtons={props.actionButtons}>
       {noCookies && <Row lbl="Cookies" val="None" />}
-      {headerCookies.map((cookie: any, index: number) => {
+      {headerCookies.map((cookie, index) => {
         const attributes = Object.keys(cookie.attributes).map((key: string) => {
-          return { lbl: key, val: cookie.attributes[key] };
+          return { lbl: key, val: cookie.attributes[key] || true };
         });
         return (
           <ExpandableRow
             key={`header-cookie-${index}-${cookie.name}`}
             lbl={cookie.name || '(unnamed)'}
             val={cookie.value}
+            term="cookie-security"
+            {...cookieStatus(cookie)}
             rowList={attributes}
           />
         );
       })}
       {clientCookies.map((cookie: any, index: number) => {
         const nameValPairs = Object.keys(cookie).map((key: string) => {
-          return { lbl: key, val: cookie[key] };
+          return { lbl: key, val: String(cookie[key]) };
         });
         return (
           <ExpandableRow
             key={`client-cookie-${index}-${cookie.name}`}
             lbl={cookie.name}
-            val=""
             rowList={nameValPairs}
           />
         );

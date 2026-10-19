@@ -1,7 +1,8 @@
 import middleware from './_common/middleware.js';
 import { httpGet, isBotCheck, BOT_CHECK_ERROR } from './_common/http.js';
 
-const MIN_MAX_AGE = 10886400;
+// One year, the shortest max-age the HSTS preload list accepts
+const MIN_MAX_AGE = 31536000;
 
 const verdict = (message, compatible = false, hstsHeader = null) => ({
   message,
@@ -12,7 +13,7 @@ const verdict = (message, compatible = false, hstsHeader = null) => ({
 const evaluate = (header) => {
   if (!header) return verdict('Site does not serve any HSTS headers.');
   const lower = header.toLowerCase();
-  const maxAge = parseInt(lower.match(/max-age=(\d+)/)?.[1] || '0', 10);
+  const maxAge = Number(/max-age\s*=\s*"?(\d+)/.exec(lower)?.[1] || 0);
   if (maxAge < MIN_MAX_AGE)
     return verdict(`HSTS max-age is ${maxAge}, below the ${MIN_MAX_AGE} minimum.`, false, header);
   if (!lower.includes('includesubdomains'))

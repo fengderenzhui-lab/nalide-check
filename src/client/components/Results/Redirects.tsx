@@ -1,9 +1,11 @@
 import colors from 'client/styles/colors';
 import { Card } from 'client/components/Form/Card';
 import Row from 'client/components/Form/Row';
+import { fromFinding } from 'client/components/misc/Icon';
+import { checkHops, checkHttps } from 'client/analysis/rules/redirects';
 
 const cardStyles = `
-  div {
+  .chain > div {
     justify-content: flex-start;
     align-items: baseline;
     flex-wrap: nowrap;
@@ -14,30 +16,37 @@ const cardStyles = `
     font-weight: bold;
     margin-right: 0.5rem;
   }
-  .redirect-count {
-    color: ${colors.textColorSecondary};
-    margin: 0;
-  }
 `;
 
 const RedirectsCard = (props: { data: any; title: string; actionButtons: any }): JSX.Element => {
   // The API chain includes the original URL as its first entry
-  const chain = props.data?.redirects || [];
+  const chain: string[] = props.data?.redirects || [];
   const count = Math.max(chain.length - 1, 0);
+  const upgrade = checkHttps(chain);
   return (
     <Card heading={props.title} actionButtons={props.actionButtons} styles={cardStyles}>
-      {!count && <Row lbl="" val="No redirects" />}
+      <Row
+        lbl="Redirects Followed"
+        val={count || 'None'}
+        term="redirects"
+        {...fromFinding(checkHops(chain))}
+      />
+      {upgrade && (
+        <Row
+          lbl="Redirects to HTTPS"
+          val={upgrade.severity === 'pass'}
+          term="https-redirect"
+          {...fromFinding(upgrade)}
+        />
+      )}
       {count > 0 && (
-        <>
-          <p className="redirect-count">
-            Followed {count} redirect{count === 1 ? '' : 's'} when contacting host
-          </p>
-          {chain.slice(1).map((redirect: any, index: number) => (
-            <Row lbl="" val="" key={index}>
+        <div className="chain">
+          {chain.slice(1).map((redirect, index) => (
+            <Row key={index}>
               <span className="arrow-thing">↳</span> {redirect}
             </Row>
           ))}
-        </>
+        </div>
       )}
     </Card>
   );

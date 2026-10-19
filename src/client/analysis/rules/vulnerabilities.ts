@@ -4,9 +4,9 @@ import type { Vuln } from 'client/utils/result-processor';
 const MAX_LISTED = 8;
 
 // Surface CVEs Shodan attributes to this host, rated by known or likely exploitation
-const serverInfo: Analyzer = (d) => {
+const vulnerabilities: Analyzer = (d) => {
   const vulns: Vuln[] = Array.isArray(d?.vulns) ? d.vulns : [];
-  if (!vulns.length) return [];
+  if (!vulns.length) return [{ severity: 'pass', title: 'No known CVEs on this host' }];
   const exploited = vulns.filter((v) => v.kev).length;
   const note = exploited ? `${exploited} known to be exploited in the wild. ` : '';
   const cves = vulns
@@ -23,4 +23,4 @@ const serverInfo: Analyzer = (d) => {
   ];
 };
 
-export default serverInfo;
+export default vulnerabilities;

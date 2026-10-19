@@ -65,36 +65,34 @@ const layers: Layer[] = [
 
 <div class="layer-stack" aria-hidden="true">
   <div class="stack" style={`--count: ${layers.length}`}>
-    {
-      layers.map((layer, index) => (
-        <div class="layer" style={`--i: ${index}`}>
-          <h4>{layer.name}</h4>
-          {layer.wireframe && (
-            <svg class="wireframe" viewBox="0 0 100 64">
-              <rect width="100" height="7" />
-              <rect class="title" y="13" width="66" height="9" />
-              <rect class="button" y="27" width="28" height="6" />
-              <rect y="40" width="30" height="24" />
-              <rect x="35" y="40" width="30" height="24" />
-              <rect x="70" y="40" width="30" height="24" />
-            </svg>
-          )}
-          {layer.rows?.map(([key, value, tone]) => (
-            <p>
-              <span>{key}</span>
-              <em class={tone}>{value}</em>
-            </p>
-          ))}
-          {layer.ports && (
-            <div class="ports">
-              {layer.ports.map(([port, tone]) => (
-                <span class={tone}>{port}</span>
-              ))}
-            </div>
-          )}
-        </div>
-      ))
-    }
+    {layers.map((layer, index) => (
+      <div class="layer" style={`--i: ${index}`}>
+        <h4>{layer.name}</h4>
+        {layer.wireframe && (
+          <svg class="wireframe" viewBox="0 0 100 64">
+            <rect width="100" height="7" />
+            <rect class="title" y="13" width="66" height="9" />
+            <rect class="button" y="27" width="28" height="6" />
+            <rect y="40" width="30" height="24" />
+            <rect x="35" y="40" width="30" height="24" />
+            <rect x="70" y="40" width="30" height="24" />
+          </svg>
+        )}
+        {layer.rows?.map(([key, value, tone]) => (
+          <p>
+            <span>{key}</span>
+            <em class={tone}>{value}</em>
+          </p>
+        ))}
+        {layer.ports && (
+          <div class="ports">
+            {layer.ports.map(([port, tone]) => (
+              <span class={tone}>{port}</span>
+            ))}
+          </div>
+        )}
+      </div>
+    ))}
     <div class="scan"></div>
   </div>
 </div>

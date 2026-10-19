@@ -165,42 +165,40 @@ const configGroups: { title: string; description: string; options: ConfigOption[
   <section class="config">
     <h2>Configuration</h2>
     <p>
-      Web Check runs without any configuration, so everything below is optional.<br />
-      Set values as environment variables, in <code>.env</code>, your host's dashboard, or with <code
-        >docker run -e</code
-      >.
+      Web Check runs without any configuration, so everything below is optional.
+      <br />
+      Set values as environment variables, in <code>.env</code>, your host's dashboard, or with{' '}
+      <code>docker run -e</code>.
     </p>
-    {
-      configGroups.map((group) => (
-        <details>
-          <summary>
-            <h3>{group.title}</h3>
-            <span>{group.description}</span>
-          </summary>
-          <dl>
-            {group.options.map((option) => (
-              <div>
-                <dt>{option.key}</dt>
-                <dd>
-                  {option.info}
-                  {option.example && (
-                    <>
-                      {' '}
-                      (e.g.<code>{option.example}</code>)
-                    </>
-                  )}
-                  {option.link && (
-                    <a href={option.link} target="_blank" rel="noreferrer">
-                      Get a key
-                    </a>
-                  )}
-                </dd>
-              </div>
-            ))}
-          </dl>
-        </details>
-      ))
-    }
+    {configGroups.map((group) => (
+      <details>
+        <summary>
+          <h3>{group.title}</h3>
+          <span>{group.description}</span>
+        </summary>
+        <dl>
+          {group.options.map((option) => (
+            <div>
+              <dt>{option.key}</dt>
+              <dd>
+                {option.info}
+                {option.example && (
+                  <>
+                    {' '}
+                    (e.g.<code>{option.example}</code>)
+                  </>
+                )}
+                {option.link && (
+                  <a href={option.link} target="_blank" rel="noreferrer">
+                    Get a key
+                  </a>
+                )}
+              </dd>
+            </div>
+          ))}
+        </dl>
+      </details>
+    ))}
   </section>
 
   <SponsorCard />

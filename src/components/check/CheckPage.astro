@@ -2,8 +2,11 @@
 import PageLayout from '@layouts/Page.astro';
 import ScanForm from '@components/form/ScanForm.astro';
 import CheckList from '@components/category/CheckList.astro';
+import PillLinks from '@components/molecules/PillLinks.astro';
+import TermList from '@components/molecules/TermList.astro';
 import { checks, relatedChecks, type CheckId } from '@/data/checks';
 import { categories } from '@/data/categories';
+import { glossary } from '@/data/glossary';
 
 interface Props {
   check: CheckId;
@@ -23,10 +26,12 @@ const resources = info.resources.map((resource) =>
   typeof resource === 'string' ? { title: resource, link: resource } : resource,
 );
 
-const labels = info.categories.map((c) => categories[c].label);
+const tags = info.categories.map((c) => ({ label: categories[c].label, href: `/${c}` }));
+const labels = tags.map((tag) => tag.label);
 const keywords = [info.title, ...labels, 'website check'].join(', ').toLowerCase();
 
 const related = relatedChecks(check);
+const terms = Object.entries(glossary).filter(([, term]) => term.check === check);
 ---
 
 <PageLayout
@@ -40,18 +45,12 @@ const related = relatedChecks(check);
   ]}
 >
   <section class="hero">
-    <p class="crumbs"><a href="/checks">All checks</a></p>
+    <p class="crumbs">
+      <a href="/checks">All checks</a>
+    </p>
     <h1>{info.title}</h1>
     <p class="summary">{info.summary}</p>
-    <ul class="tags">
-      {
-        info.categories.map((category) => (
-          <li>
-            <a href={`/${category}`}>{categories[category].label}</a>
-          </li>
-        ))
-      }
-    </ul>
+    <PillLinks links={tags} />
     <ScanForm tool={scanCheck} label={scanLabel} />
   </section>
 
@@ -63,6 +62,13 @@ const related = relatedChecks(check);
       <p>{info.use}</p>
     </article>
 
+    {terms.length > 0 && (
+      <section class="terms">
+        <h2>Key terms</h2>
+        <TermList terms={terms} linkToGlossary />
+      </section>
+    )}
+
     <aside>
       <!-- {
         info.screenshot && (
@@ -72,22 +78,20 @@ const related = relatedChecks(check);
           </figure>
         )
       } -->
-      {
-        resources.length > 0 && (
-          <div class="resources">
-            <h2>Further reading</h2>
-            <ul>
-              {resources.map((resource) => (
-                <li>
-                  <a href={resource.link} target="_blank" rel="noreferrer">
-                    {resource.title}
-                  </a>
-                </li>
-              ))}
-            </ul>
-          </div>
-        )
-      }
+      {resources.length > 0 && (
+        <div class="resources">
+          <h2>Further reading</h2>
+          <ul>
+            {resources.map((resource) => (
+              <li>
+                <a href={resource.link} target="_blank" rel="noreferrer">
+                  {resource.title}
+                </a>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
     </aside>
   </div>
 
@@ -125,34 +129,6 @@ const related = relatedChecks(check);
       line-height: 1.6;
       color: var(--text-color-secondary);
     }
-
-    .tags {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 0.5rem;
-      list-style: none;
-      padding: 0;
-      margin: 0;
-
-      a {
-        display: block;
-        padding: 0.25rem 0.75rem;
-        border: 1px solid var(--background-lighter);
-        border-radius: 2rem;
-        font-size: 0.85rem;
-        color: var(--text-color-secondary);
-        transition:
-          border-color 0.25s ease,
-          color 0.25s ease;
-
-        &:hover,
-        &:focus-visible {
-          border-color: var(--primary);
-          color: var(--primary);
-          text-decoration: none;
-        }
-      }
-    }
   }
 
   .body {
@@ -174,20 +150,30 @@ const related = relatedChecks(check);
       color: var(--text-color-secondary);
     }
 
-    h2 {
-      font-size: 1.4rem;
-      margin-bottom: 0.75rem;
-
-      &:not(:first-child) {
-        margin-top: 2.5rem;
-      }
+    h2:not(:first-child) {
+      margin-top: 2.5rem;
     }
   }
 
+  article h2,
+  .terms h2 {
+    font-size: 1.4rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .terms {
+    grid-column: 1 / -1;
+  }
+
   aside {
+    grid-area: 1 / 2;
     display: flex;
     flex-direction: column;
     gap: 2rem;
+
+    @include tablet-landscape-down {
+      grid-area: auto;
+    }
 
     figure {
       margin: 0;
@@ -219,6 +205,7 @@ const related = relatedChecks(check);
       gap: 0.5rem;
       font-size: 0.9rem;
       line-height: 1.5;
+      overflow-wrap: anywhere;
     }
   }
 </style>

@@ -51,16 +51,16 @@ jobs:
           echo "Releasing tag: $TAG"
 
       - name: Checkout source at tag 🛎️
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           ref: refs/tags/${{ steps.tag.outputs.tag }}
           fetch-depth: 0
 
       - name: Setup Node.js 🔧
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v7
         with:
           node-version: '22'
-          cache: 'yarn'
+          package-manager-cache: false
 
       - name: Install dependencies 📦
         run: yarn install --frozen-lockfile
@@ -90,8 +90,9 @@ jobs:
           mkdir -p "$STAGING"
           cp -r dist api public "$STAGING/"
           cp server.js package.json yarn.lock "$STAGING/"
-          [ -f LICENSE ]   && cp LICENSE   "$STAGING/" || true
-          [ -f README.md ] && cp README.md "$STAGING/" || true
+          for f in LICENSE README.md; do
+            if [ -f "$f" ]; then cp "$f" "$STAGING/"; fi
+          done
 
           TARBALL="${STAGING}.tar.gz"
           ZIPFILE="${STAGING}.zip"
@@ -104,7 +105,7 @@ jobs:
 
       - name: Create draft release 🚀
         id: release
-        uses: softprops/action-gh-release@v3
+        uses: softprops/action-gh-release@v3 # zizmor: ignore[superfluous-actions]
         with:
           tag_name: ${{ steps.tag.outputs.tag }}
           name: Web-Check v${{ steps.tag.outputs.tag }}

@@ -1,4 +1,4 @@
-import type { Analyzer, Finding } from '../types';
+import type { Analyzer, Result } from '../types';
 
 const label = (profile: any): string => `${profile.network} @${profile.handle}`;
 
@@ -9,7 +9,7 @@ const socialPresence: Analyzer = (d) => {
   const unconfirmed = profiles.filter((p) => p.exists && !p.domainVerified && !p.linksBack);
   const confirmed = profiles.filter((p) => p.exists && (p.domainVerified || p.linksBack));
   const unchecked = profiles.filter((p) => p.checked === false);
-  const findings: Omit<Finding, 'cardId'>[] = [];
+  const findings: Result[] = [];
 
   if (missing.length) {
     findings.push({

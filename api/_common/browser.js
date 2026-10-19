@@ -1,5 +1,7 @@
 import puppeteer from 'puppeteer-core';
-import chromium from '@sparticuz/chromium';
+import sparticuz from '@sparticuz/chromium';
+
+export const chromium = sparticuz.default || sparticuz;
 
 // Serverless launch args, minus the ones that turn off same-origin rules
 const UNSAFE_ARGS = ['--disable-web-security', '--allow-running-insecure-content'];

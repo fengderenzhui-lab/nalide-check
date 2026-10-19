@@ -22,23 +22,24 @@ if (redirectPath) return Astro.redirect(redirectPath);
 ---
 
 <PageLayout>
-  <Fragment slot="nav"></Fragment>
+  <Fragment slot="nav" />
   <div slot="background" class="background">
     <HomeBackground client:only="react" opacity={0.25} />
   </div>
   <div class="home">
-    <h1><img src="/favicon.svg" alt="" width="48" height="48" />Web <em>Check</em></h1>
+    <h1>
+      <img src="/favicon.svg" alt="" width="48" height="48" />
+      Web <em>Check</em>
+    </h1>
     <ScanForm label="Enter a URL" showCategories />
     <div>
       <h2>Checks</h2>
       <ul>
-        {
-          checkIds.map((id) => (
-            <li>
-              <a href={`/${id}`}>{checks[id].title}</a>
-            </li>
-          ))
-        }
+        {checkIds.map((id) => (
+          <li>
+            <a href={`/${id}`}>{checks[id].title}</a>
+          </li>
+        ))}
       </ul>
     </div>
     <SponsorCard />

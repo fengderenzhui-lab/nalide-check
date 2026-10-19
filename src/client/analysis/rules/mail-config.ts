@@ -1,6 +1,4 @@
-import type { Analyzer, Finding } from '../types';
-
-type Result = Omit<Finding, 'cardId'>;
+import type { Analyzer, Result } from '../types';
 type DkimKey = { selector: string; bits: number | null };
 
 export interface MailData {
@@ -121,7 +119,7 @@ export const checkDmarc = (d: MailData): Result => {
   return { severity: 'pass', title: `DMARC policy: ${policy}${from}` };
 };
 
-const checkSubdomainDmarc = (d: MailData): Result | null => {
+export const checkSubdomainDmarc = (d: MailData): Result | null => {
   const dmarc = findRecords(d.txtRecords, 'v=DMARC1');
   if (dmarc.length !== 1 || d.dmarcDomain) return null;
   const { p, sp } = parseTags(dmarc[0]);
@@ -217,7 +215,7 @@ export const checkMtaSts = (d: MailData): Result | null => {
   return { severity: 'pass', title: 'MTA-STS policy enforced' };
 };
 
-const checkTlsRpt = (d: MailData): Result | null => {
+export const checkTlsRpt = (d: MailData): Result | null => {
   if (!d.mtaSts && !d.dane?.length) return null;
   if (findRecords(d.txtRecords, 'v=TLSRPTv1').length) {
     return { severity: 'pass', title: 'TLS-RPT reports set up' };

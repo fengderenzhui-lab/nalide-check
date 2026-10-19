@@ -27,38 +27,43 @@ const elsewhere = [
 >
   <section class="intro">
     <h1>About Web Check</h1>
-    {about.map((paragraph) => <p>{paragraph}</p>)}
+    {about.map((paragraph) => (
+      <p>{paragraph}</p>
+    ))}
     <p>
-      It's built and maintained by <a href={authorLink}>{authorName}</a>, and the source is on <a
-        href={repoLink}>GitHub</a
-      >.
+      It's built and maintained by <a href={authorLink}>{authorName}</a>, and the source is on{' '}
+      <a href={repoLink}>GitHub</a>.
     </p>
     <ul class="elsewhere">
-      {
-        elsewhere.map((link) => (
-          <li>
-            <a href={link.link}>{link.title}</a>
-          </li>
-        ))
-      }
+      {elsewhere.map((link) => (
+        <li>
+          <a href={link.link}>{link.title}</a>
+        </li>
+      ))}
     </ul>
   </section>
 
   <section>
     <h2>Support the project</h2>
-    {supportUs.map((paragraph) => <p set:html={paragraph} />)}
+    {supportUs.map((paragraph) => (
+      <p set:html={paragraph} />
+    ))}
   </section>
 
   <section>
     <h2>Fair use</h2>
     <ul>
-      {fairUse.map((rule) => <li>{rule}</li>)}
+      {fairUse.map((rule) => (
+        <li>{rule}</li>
+      ))}
     </ul>
   </section>
 
   <section>
     <h2>Privacy</h2>
-    {privacy.map((paragraph) => <p>{paragraph}</p>)}
+    {privacy.map((paragraph) => (
+      <p>{paragraph}</p>
+    ))}
   </section>
 
   <section>

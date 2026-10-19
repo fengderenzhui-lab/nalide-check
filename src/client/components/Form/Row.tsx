@@ -2,18 +2,23 @@ import type { ReactNode } from 'react';
 import styled from '@emotion/styled';
 import colors from 'client/styles/colors';
 import Heading from 'client/components/Form/Heading';
+import { StatusIcon, type Status } from 'client/components/misc/Icon';
+import Tooltip from 'client/components/misc/Tooltip';
+import { termText, type TermId } from '@/data/glossary';
 
 export interface RowProps {
-  lbl: string;
-  val: string | boolean;
-  key?: string | number;
-  children?: ReactNode;
-  rowList?: RowProps[];
+  lbl?: string;
+  val?: string | number | boolean;
+  status?: Status;
+  reason?: string;
+  term?: TermId;
+  yes?: string;
+  no?: string;
   title?: string;
-  open?: boolean;
+  link?: string;
   plaintext?: string;
   listResults?: string[];
-  link?: string;
+  children?: ReactNode;
 }
 
 export const StyledRow = styled.div`
@@ -22,51 +27,72 @@ export const StyledRow = styled.div`
   flex-wrap: wrap;
   column-gap: 0.5rem;
   padding: 0.25rem;
-  &li {
-    border-bottom: 1px dashed ${colors.primaryTransparent} !important;
-  }
   &:not(:last-child) {
     border-bottom: 1px solid ${colors.primaryTransparent};
   }
+  > a {
+    color: ${colors.textColor};
+    &:hover {
+      color: ${colors.primary};
+    }
+  }
+  /* Labels keep a third of the row, so long values can't squash them */
   span.lbl {
     font-weight: bold;
     flex: 1;
+    min-width: calc(35% - 0.5rem);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
   }
   span.val {
-    max-width: 16rem;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.4em;
+    min-width: 0;
+    max-width: min(16rem, 65%);
+    > span,
+    > a {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
     a {
       color: ${colors.primary};
     }
   }
 `;
 
-export const Details = styled.details`
+const Details = styled.details`
   transition: all 0.2s ease-in-out;
-  summary {
+  > summary {
     padding-left: 1rem;
     list-style: none;
     cursor: pointer;
+    &::-webkit-details-marker {
+      display: none;
+    }
   }
-  summary:before {
+  > summary:before {
     content: '►';
     position: absolute;
     margin-left: -1rem;
     color: ${colors.primary};
     cursor: pointer;
   }
-  &[open] summary:before {
+  &[open] > summary:before {
     content: '▼';
   }
 `;
 
-const SubRowList = styled.ul`
-  margin: 0;
+const Collapsible = styled(Details)`
+  > summary {
+    margin: 1rem 0 0.5rem 0;
+  }
+`;
+
+const SubRows = styled.div`
   padding: 0.25rem;
   background: ${colors.primaryTransparent};
 `;
@@ -81,7 +107,6 @@ const PlainText = styled.pre`
 `;
 
 const List = styled.ul`
-  // background: ${colors.background};
   width: 100%;
   white-space: pre-wrap;
   word-wrap: break-word;
@@ -89,8 +114,6 @@ const List = styled.ul`
   margin: 0;
   padding: 0.25rem 0.25rem 0.25rem 1rem;
   li {
-    // white-space: nowrap;
-    // overflow: hidden;
     text-overflow: ellipsis;
     list-style: circle;
     &:first-letter {
@@ -102,9 +125,9 @@ const List = styled.ul`
   }
 `;
 
-// Only date-format strings that actually look like dates, not bare numbers
+// Only date-format strings holding an ISO date or a time, not names with numbers in
 const isDateLike = (value: any): boolean => {
-  if (typeof value !== 'string' || value.length < 8 || !/[-/: ]/.test(value)) return false;
+  if (typeof value !== 'string' || !/\d{4}-\d\d-\d\d|\d\d?:\d\d:\d\d/.test(value)) return false;
   const date = new Date(value);
   if (isNaN(date.getTime())) return false;
   return date >= new Date('1995-01-01') && date <= new Date('2030-12-31');
@@ -118,24 +141,42 @@ const formatDate = (dateString: string): string => {
   }).format(new Date(dateString));
 };
 
-const formatValue = (value: any): string => {
-  if (isDateLike(value)) return formatDate(value);
-  if (typeof value === 'boolean') return value ? '✅' : '❌';
-  return value;
+// The text shown for a value, with dates formatted and booleans as yes or no
+const valueText = ({ val, yes = 'Yes', no = 'No' }: RowProps): string => {
+  if (typeof val === 'boolean') return val ? yes : no;
+  return isDateLike(val) ? formatDate(val as string) : String(val ?? '');
 };
 
-// Format a value, as a link when given one
-const showValue = (value: any, link?: string): ReactNode =>
-  link ? (
-    <a href={link} target="_blank" rel="noreferrer">
-      {formatValue(value)}
-    </a>
-  ) : (
-    formatValue(value)
+// Why a row got its status, then what its term means, for the tooltip on its icon
+const hint = ({ reason, term }: RowProps, status: Status) =>
+  (reason || term) && (
+    <>
+      {reason && <b>{reason}</b>}
+      {term && termText(term, status === 'pass')}
+    </>
   );
 
-const copyToClipboard = (text: string | boolean) => {
-  navigator.clipboard.writeText(String(text));
+// A value's text, as a link when given one, then its status icon
+const Value = (props: RowProps) => {
+  const { val, link } = props;
+  const status = props.status || (typeof val === 'boolean' ? (val ? 'pass' : 'error') : undefined);
+  const text = valueText(props);
+  return (
+    <>
+      {link ? (
+        <a href={link} target="_blank" rel="noreferrer">
+          {text}
+        </a>
+      ) : (
+        <span>{text}</span>
+      )}
+      {status && (
+        <Tooltip content={hint(props, status)}>
+          <StatusIcon status={status} />
+        </Tooltip>
+      )}
+    </>
+  );
 };
 
 const snip = (text: string, length: number = 80) => {
@@ -143,46 +184,53 @@ const snip = (text: string, length: number = 80) => {
   return `${text.substring(0, length)}...`;
 };
 
-export const ExpandableRow = (props: RowProps) => {
-  const { lbl, val, title, rowList, open } = props;
+// A titled group of rows, which can start collapsed
+export const Section = (props: {
+  title: ReactNode;
+  collapsible?: boolean;
+  children: ReactNode;
+}) => {
+  const { title, collapsible, children } = props;
+  const heading = (
+    <Heading as="h4" size="small" align="left" color={colors.primary} inline={collapsible}>
+      {title}
+    </Heading>
+  );
+  if (!collapsible) {
+    return (
+      <>
+        {title && heading}
+        {children}
+      </>
+    );
+  }
+  return (
+    <Collapsible>
+      <summary>{heading}</summary>
+      {children}
+    </Collapsible>
+  );
+};
+
+export const ExpandableRow = (props: RowProps & { rowList?: RowProps[]; open?: boolean }) => {
+  const { lbl, val, title, rowList = [], open } = props;
   return (
     <Details open={open}>
-      <StyledRow as="summary" key={`${lbl}-${val}`}>
-        <span className="lbl" title={title?.toString()}>
+      <StyledRow as="summary">
+        <span className="lbl" title={title || lbl}>
           {lbl}
         </span>
-        <span className="val" title={val?.toString()}>
-          {val.toString()}
-        </span>
+        {val != null && (
+          <span className="val" title={title || valueText(props)}>
+            <Value {...props} />
+          </span>
+        )}
       </StyledRow>
-      {rowList && (
-        <SubRowList>
-          {rowList?.map((row: RowProps, index: number) => {
-            return (
-              <StyledRow as="li" key={`${row.lbl}-${index}`}>
-                <span className="lbl" title={row.title?.toString()}>
-                  {row.lbl}
-                </span>
-                <span
-                  className="val"
-                  title={row.val?.toString()}
-                  onClick={() => copyToClipboard(row.val)}
-                >
-                  {showValue(row.val, row.link)}
-                </span>
-                {row.plaintext && <PlainText>{row.plaintext}</PlainText>}
-                {row.listResults && (
-                  <List>
-                    {row.listResults.map((listItem: string) => (
-                      <li key={listItem}>{snip(listItem)}</li>
-                    ))}
-                  </List>
-                )}
-              </StyledRow>
-            );
-          })}
-        </SubRowList>
-      )}
+      <SubRows>
+        {rowList.map((row, index) => (
+          <Row key={index} {...row} />
+        ))}
+      </SubRows>
     </Details>
   );
 };
@@ -190,38 +238,38 @@ export const ExpandableRow = (props: RowProps) => {
 export const ListRow = (props: { list: string[]; title: string }) => {
   const { list, title } = props;
   return (
-    <>
-      <Heading as="h4" size="small" align="left" color={colors.primary}>
-        {title}
-      </Heading>
-      {list.map((entry: string, index: number) => {
-        return (
-          <Row lbl="" val="" key={`${entry}-${title.toLocaleLowerCase()}-${index}`}>
-            <span>{entry}</span>
-          </Row>
-        );
-      })}
-    </>
+    <Section title={title}>
+      {list.map((entry, index) => (
+        <Row key={`${entry}-${index}`}>{entry}</Row>
+      ))}
+    </Section>
   );
 };
 
 const Row = (props: RowProps) => {
-  const { lbl, val, title, plaintext, listResults, link, children } = props;
-  if (children) return <StyledRow key={`${lbl}-${val}`}>{children}</StyledRow>;
+  const { lbl, val, title, plaintext, listResults, children } = props;
+  if (children) return <StyledRow>{children}</StyledRow>;
+  const text = valueText(props);
   return (
-    <StyledRow key={`${lbl}-${val}`}>
+    <StyledRow>
       {lbl && (
-        <span className="lbl" title={title?.toString()}>
+        <span className="lbl" title={title || lbl}>
           {lbl}
         </span>
       )}
-      <span className="val" title={val?.toString()} onClick={() => copyToClipboard(val)}>
-        {showValue(val, link)}
-      </span>
+      {val != null && (
+        <span
+          className="val"
+          title={title || text}
+          onClick={() => navigator.clipboard.writeText(text)}
+        >
+          <Value {...props} />
+        </span>
+      )}
       {plaintext && <PlainText>{plaintext}</PlainText>}
       {listResults && (
         <List>
-          {listResults.map((listItem: string, listIndex: number) => (
+          {listResults.map((listItem, listIndex) => (
             <li key={listIndex} title={listItem}>
               {snip(listItem)}
             </li>

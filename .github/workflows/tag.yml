@@ -5,7 +5,7 @@
 # - If version wasn't bumped in PR, increment patch version and update package.json
 # - Otherwise (if the PR did bump version) we use the new version from package.json
 # - Creates and pushes a git tag for the new version
-# - That git tag then triggers Docker publishing and AWS deployment in other CI
+# - That git tag then triggers Docker publishing, plus a GitHub release for X.Y.0 tags
 # - Add tags to issues from newly released features/fixes (if applicable)
 # - Finally, shows summary of actions taken and new tag published
 #
@@ -22,7 +22,7 @@ on:
         description: 'Version to release (e.g. 2.1.0). Leave blank to auto-increment patch.'
         required: false
         type: string
-  pull_request_target:
+  pull_request_target: # zizmor: ignore[dangerous-triggers]
     types: [closed]
     branches: [master]
 
@@ -110,7 +110,7 @@ jobs:
 
       - name: Checkout repository 🛎️
         if: env.IS_MANUAL == 'true' || steps.check_pr.outputs.needs_tag == 'true'
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           token: ${{ secrets.BOT_TOKEN || secrets.GITHUB_TOKEN }}
 
@@ -126,6 +126,12 @@ jobs:
         uses: actions/github-script@v9
         with:
           script: |
+            const author = context.payload.pull_request.user?.login || '';
+            if (author.startsWith('dependabot')) {
+              core.info('Dependabot PR, skipping issue references');
+              core.setOutput('numbers', '');
+              return;
+            }
             const body = context.payload.pull_request.body || '';
             const prNumber = String(context.payload.pull_request.number);
             const matches = body.match(/#(\d+)(?![a-fA-F0-9])/g);

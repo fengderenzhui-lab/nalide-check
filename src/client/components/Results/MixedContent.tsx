@@ -1,11 +1,17 @@
 import { Card } from 'client/components/Form/Card';
-import Row, { ListRow } from 'client/components/Form/Row';
+import Row, { ListRow, type RowProps } from 'client/components/Form/Row';
+import { fromFindings } from 'client/components/misc/Icon';
+import { integrityFindings, mixedFindings } from 'client/analysis/rules/mixed-content';
 
 // Sum up the mixed content, noting when the page's CSP upgrades it to https
-const mixedSummary = (https: boolean, count: number, upgraded: boolean) => {
-  if (!https) return 'N/A, page is HTTP';
-  if (!count) return '✅ None';
-  return upgraded ? `⚠️ ${count} upgraded by CSP` : `❌ ${count} found`;
+const mixedSummary = (d: any, count: number): RowProps => {
+  if (!d.url.startsWith('https:')) return { val: 'N/A, page is HTTP' };
+  const result = fromFindings(mixedFindings(d));
+  if (!count) return { val: 'None', ...result };
+  return {
+    val: d.upgradeInsecureRequests ? `${count} upgraded by CSP` : `${count} found`,
+    ...result,
+  };
 };
 
 const MixedContentCard = (props: { data: any; title: string; actionButtons: any }): JSX.Element => {
@@ -14,7 +20,8 @@ const MixedContentCard = (props: { data: any; title: string; actionButtons: any 
   const { versioned = [], unversioned = [] } = props.data.missingIntegrity || {};
   const https = url.startsWith('https:');
   const mixed = active.length + passive.length + forms.length;
-  const hashed = thirdPartyScripts - versioned.length - unversioned.length;
+  const summary = mixedSummary(props.data, mixed);
+  const unhashed = versioned.length + unversioned.length;
   const lists: [string, string[]][] = [
     ['Insecure Scripts, Styles & Frames', active],
     ['Insecure Images & Media', passive],
@@ -26,13 +33,32 @@ const MixedContentCard = (props: { data: any; title: string; actionButtons: any 
   return (
     <Card heading={props.title} actionButtons={props.actionButtons}>
       <Row lbl="Page" val={url} />
-      <Row lbl="Mixed Content" val={mixedSummary(https, mixed, upgradeInsecureRequests)} />
+      <Row lbl="Mixed Content" term="mixed-content" {...summary} />
       {https && (upgradeInsecureRequests || mixed > 0) && (
-        <Row lbl="Upgrade Insecure Requests" val={upgradeInsecureRequests} />
+        <Row
+          lbl="Upgrade Insecure Requests"
+          val={upgradeInsecureRequests}
+          status={upgradeInsecureRequests ? 'pass' : summary.status}
+          term="upgrade-insecure-requests"
+        />
       )}
-      <Row lbl="Third-Party Scripts in HTML" val={String(thirdPartyScripts)} />
-      {thirdPartyScripts > 0 && <Row lbl="Using SRI" val={`${hashed} of ${thirdPartyScripts}`} />}
-      {integrityPolicy && <Row lbl="Integrity-Policy" val="✅ Enforced" />}
+      <Row lbl="Third-Party Scripts in HTML" val={thirdPartyScripts} />
+      {thirdPartyScripts > 0 && (
+        <Row
+          lbl="Using SRI"
+          val={`${thirdPartyScripts - unhashed} of ${thirdPartyScripts}`}
+          term="sri"
+          {...fromFindings(integrityFindings(props.data))}
+        />
+      )}
+      {integrityPolicy && (
+        <Row
+          lbl="Integrity-Policy"
+          val={unhashed ? `Blocks ${unhashed} script(s)` : 'Enforced'}
+          status={unhashed ? 'error' : 'pass'}
+          term="integrity-policy"
+        />
+      )}
       {lists.map(
         ([title, list]) => list.length > 0 && <ListRow key={title} title={title} list={list} />,
       )}

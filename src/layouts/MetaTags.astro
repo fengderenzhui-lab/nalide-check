@@ -22,7 +22,7 @@ const siteInfo = {
   themeColor: '#c1fb41',
   author: 'Alicia Sykes',
   twitter: '@Lissy_Sykes',
-  site: import.meta.env.SITE_URL || 'https://web-check.xyz',
+  site: (import.meta.env.SITE_URL || 'https://web-check.xyz').replace(/\/+$/, ''),
   analytics: {
     enable: import.meta.env.ENABLE_ANALYTICS,
     domain: 'web-check.as93.net',
@@ -38,7 +38,7 @@ const pageDescription = description ?? siteInfo.description;
 const pageKeywords = keywords ?? siteInfo.keywords;
 
 const { site, author, twitter, analytics, themeColor } = siteInfo;
-const canonical = new URL(Astro.url.pathname, site).href;
+const canonical = new URL(Astro.url.pathname.replace(/\/$/, '') || '/', site).href;
 const ogImage = `${site}/banner.png`;
 
 // Given a map of breadcrumbs, return the JSON-LD for the BreadcrumbList schema
@@ -96,20 +96,14 @@ const makeBreadcrumbs = () => {
 <meta name="twitter:creator" content={twitter} />
 
 <!-- Non-tracking hit counter -->
-{
-  analytics.enable && (
-    <script is:inline defer data-domain={analytics.domain} src={analytics.script} />
-  )
-}
+{analytics.enable && (
+  <script is:inline defer data-domain={analytics.domain} src={analytics.script} />
+)}
 
 <!-- Schema.org markup for Google -->
-{
-  breadcrumbs && (
-    <script is:inline type="application/ld+json" set:html={JSON.stringify(makeBreadcrumbs())} />
-  )
-}
-{
-  customSchemaJson && (
-    <script is:inline type="application/ld+json" set:html={JSON.stringify(customSchemaJson)} />
-  )
-}
+{breadcrumbs && (
+  <script is:inline type="application/ld+json" set:html={JSON.stringify(makeBreadcrumbs())} />
+)}
+{customSchemaJson && (
+  <script is:inline type="application/ld+json" set:html={JSON.stringify(customSchemaJson)} />
+)}

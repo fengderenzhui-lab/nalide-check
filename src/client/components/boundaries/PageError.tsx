@@ -5,11 +5,9 @@ import colors from 'client/styles/colors';
 import Heading from 'client/components/Form/Heading';
 import Button from 'client/components/Form/Button';
 import { StyledCard } from 'client/components/Form/Card';
-import { Link } from 'react-router';
 
 interface ErrorBoundaryState {
   hasError: boolean;
-  errorCount: number;
   errorMessage: string | null;
 }
 
@@ -62,28 +60,23 @@ const ErrorMessageText = styled.p`
 class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
   constructor(props: ErrorBoundaryProps) {
     super(props);
-    this.state = { hasError: false, errorCount: 0, errorMessage: null };
+    this.state = { hasError: false, errorMessage: null };
   }
 
   static getDerivedStateFromError(err: Error): ErrorBoundaryState {
-    return { hasError: true, errorCount: 0, errorMessage: err.message };
+    return { hasError: true, errorMessage: err.message };
   }
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
     console.error('Uncaught error:', error, errorInfo);
     console.error(
       `%cCritical Error%c\n\nRoute or component failed to mount%c:%c\n` +
-        `${this.state.errorCount < 1 ? 'Will attempt a page reload' : ''}. ` +
         `Error Details:\n${error}\n\n${JSON.stringify(errorInfo || {})}`,
       `background: ${colors.danger}; color:${colors.backgroundDarker}; padding: 4px 8px; font-size: 16px;`,
       `font-weight: bold; color: ${colors.danger};`,
       `color: ${colors.danger};`,
       `color: ${colors.warning};`,
     );
-    if (this.state.errorCount < 1) {
-      this.setState((prevState) => ({ errorCount: prevState.errorCount + 1 }));
-      window.location.reload();
-    }
   }
 
   render() {
@@ -91,9 +84,9 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
       return (
         <ErrorPageContainer>
           <HeaderLinkContainer>
-            <Link to="/">
+            <a href="/">
               <Button>Go back Home</Button>
-            </Link>
+            </a>
             <a target="_blank" rel="noreferrer" href="https://github.com/lissy93/web-check">
               <Button>View on GitHub</Button>
             </a>
@@ -123,7 +116,11 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
               )}
             </ErrorDetails>
             <Button onClick={() => window.location.reload()}>Reload Page</Button>
-            <a target="_blank" rel="noreferrer" href="github.com/lissy93/web-check/issues/choose">
+            <a
+              target="_blank"
+              rel="noreferrer"
+              href="https://github.com/lissy93/web-check/issues/choose"
+            >
               Report Issue
             </a>
           </ErrorInner>

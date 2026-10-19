@@ -11,6 +11,10 @@ const FALLBACK = 'API request failed. This may be a server error, timeout, or pl
 
 // Decode a fetch Response as JSON, returning a structured error on failure
 export const parseJson = async (res: Response): Promise<any> => {
+  // Firewall wants the browser verified again, which needs a full page load
+  if (res.headers.get('x-vercel-mitigated') === 'challenge') {
+    return { error: 'Browser verification expired. Reload the page to run this check.' };
+  }
   try {
     const json = await res.json();
     if (!res.ok && !json?.error) {

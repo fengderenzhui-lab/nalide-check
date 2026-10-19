@@ -16,32 +16,30 @@ const { cards, numbered = false } = Astro.props;
 ---
 
 <div class="option-cards">
-  {
-    cards.map((card, index) => (
-      <div class="card">
-        {numbered && <span class="option">Option #{index + 1}</span>}
-        <h3>{card.title}</h3>
-        <p>{card.description}</p>
-        {card.buttons && (
-          <div class="buttons">
-            {card.buttons.map((button) => (
-              <Button href={button.link} image={button.image} newTab={button.newTab}>
-                {button.name}
-              </Button>
-            ))}
-          </div>
-        )}
-        {card.command && (
-          <div class="shaddow docker-command">
-            <code>{card.command}</code>
-            <button>
-              <Icon name="copy" size={0.8} />
-            </button>
-          </div>
-        )}
-      </div>
-    ))
-  }
+  {cards.map((card, index) => (
+    <div class="card">
+      {numbered && <span class="option">Option #{index + 1}</span>}
+      <h3>{card.title}</h3>
+      <p>{card.description}</p>
+      {card.buttons && (
+        <div class="buttons">
+          {card.buttons.map((button) => (
+            <Button href={button.link} image={button.image} newTab={button.newTab}>
+              {button.name}
+            </Button>
+          ))}
+        </div>
+      )}
+      {card.command && (
+        <div class="shaddow docker-command">
+          <code>{card.command}</code>
+          <button>
+            <Icon name="copy" size={0.8} />
+          </button>
+        </div>
+      )}
+    </div>
+  ))}
 </div>
 
 <style lang="scss">

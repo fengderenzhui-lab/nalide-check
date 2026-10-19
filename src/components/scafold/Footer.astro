@@ -30,6 +30,7 @@ const linkGroups = [
     title: 'Docs',
     links: [
       { label: `All ${checkIds.length} checks`, href: '/checks' },
+      { label: 'Glossary', href: '/glossary' },
       { label: 'Self-hosting', href: '/self-hosted-setup' },
       { label: 'API', href: '/web-check-api' },
     ],
@@ -47,48 +48,51 @@ const linkGroups = [
 ---
 
 <footer>
-  {
-    !miniView && (
-      <div class="links">
-        <div class="intro">
-          <a href="/">
-            <img src="/favicon.svg" alt="" width="28" height="28" />
-            {projectName}
-          </a>
-          <p>
-            The all-in-one OSINT and security tool, for revealing the inner workings of any website.
-          </p>
-        </div>
-        <nav aria-label="Footer">
-          {linkGroups.map((group) => (
-            <div>
-              <h2>{group.title}</h2>
-              <ul>
-                {group.links.map((link) => (
-                  <li>
-                    <a
-                      href={link.href}
-                      target={link.href.startsWith('http') ? '_blank' : undefined}
-                    >
-                      {link.label}
-                    </a>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ))}
-        </nav>
+  {!miniView && (
+    <div class="links">
+      <div class="intro">
+        <a href="/">
+          <img src="/favicon.svg" alt="" width="28" height="28" />
+          {projectName}
+        </a>
+        <p>
+          The all-in-one OSINT and security tool, for revealing the inner workings of any website.
+        </p>
       </div>
-    )
-  }
+      <nav aria-label="Footer">
+        {linkGroups.map((group) => (
+          <div>
+            <h2>{group.title}</h2>
+            <ul>
+              {group.links.map((link) => (
+                <li>
+                  <a href={link.href} target={link.href.startsWith('http') ? '_blank' : undefined}>
+                    {link.label}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ))}
+      </nav>
+    </div>
+  )}
   <div class="bar">
     <p>
-      View source at <a href={github} target="_blank">{repo}</a>
+      View source at{' '}
+      <a href={github} target="_blank">
+        {repo}
+      </a>
     </p>
     <p>
-      <a href={aboutLink}>{projectName}</a>{' '}is licensed under{' '}
-      <a href={licenseLink} target="_blank">{licenseText}</a>{' '}- ©{' '}
-      <a href={authorLink} target="_blank">{authorName}</a>{' '}
+      <a href={aboutLink}>{projectName}</a> is licensed under{' '}
+      <a href={licenseLink} target="_blank">
+        {licenseText}
+      </a>{' '}
+      - ©{' '}
+      <a href={authorLink} target="_blank">
+        {authorName}
+      </a>{' '}
       {currentYear}
     </p>
   </div>

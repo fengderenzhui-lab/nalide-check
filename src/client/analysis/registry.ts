@@ -27,7 +27,7 @@ import socialPresence from './rules/social-presence';
 import domainInfo from './rules/domain-info';
 import status from './rules/status';
 import redirects from './rules/redirects';
-import serverInfo from './rules/server-info';
+import vulnerabilities from './rules/vulnerabilities';
 import robotsTxt from './rules/robots-txt';
 import tlsClientCompat from './rules/tls-client-compat';
 
@@ -57,7 +57,7 @@ export const analyzers: Partial<Record<CheckId, Analyzer>> = {
   'domain-info': domainInfo,
   status,
   redirects,
-  'server-info': serverInfo,
+  vulnerabilities,
   'robots-txt': robotsTxt,
   'tls-client-compat': tlsClientCompat,
 };

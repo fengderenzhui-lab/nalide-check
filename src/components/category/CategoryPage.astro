@@ -28,7 +28,9 @@ const ids = checksInCategory(category);
   <CheckList ids={ids} />
   <section class="why">
     <h2>What this tells you</h2>
-    {info.why.map((paragraph) => <p>{paragraph}</p>)}
+    {info.why.map((paragraph) => (
+      <p>{paragraph}</p>
+    ))}
   </section>
   <CategoryLinks current={category} />
 </PageLayout>

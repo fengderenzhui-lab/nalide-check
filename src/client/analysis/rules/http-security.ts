@@ -1,6 +1,4 @@
-import type { Analyzer, Finding } from '../types';
-
-type Result = Omit<Finding, 'cardId'>;
+import type { Analyzer, Result } from '../types';
 
 const CRITICAL: Record<string, string> = {
   contentSecurityPolicy: 'Content-Security-Policy',

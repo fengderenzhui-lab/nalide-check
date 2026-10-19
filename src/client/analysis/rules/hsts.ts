@@ -1,6 +1,17 @@
 import type { Analyzer } from '../types';
 
-const MIN_MAX_AGE = 10886400;
+// One year, the shortest max-age the HSTS preload list accepts
+export const MIN_MAX_AGE = 31536000;
+
+// The max-age and flags an HSTS header sets
+export const parseHsts = (header: string) => {
+  const lower = header.toLowerCase();
+  return {
+    maxAge: Number(/max-age\s*=\s*"?(\d+)/.exec(lower)?.[1] || 0),
+    includeSubDomains: lower.includes('includesubdomains'),
+    preload: lower.includes('preload'),
+  };
+};
 
 // Check HSTS presence, max-age, includeSubDomains, preload
 const hsts: Analyzer = (d) => {
@@ -13,24 +24,23 @@ const hsts: Analyzer = (d) => {
       },
     ];
   }
-  const header = String(d.hstsHeader).toLowerCase();
-  const maxAge = parseInt(header.match(/max-age=(\d+)/)?.[1] || '0', 10);
+  const { maxAge, includeSubDomains, preload } = parseHsts(String(d.hstsHeader));
   const out: ReturnType<Analyzer> = [];
   if (maxAge < MIN_MAX_AGE) {
     out.push({
       severity: 'warning',
-      title: `HSTS max-age below ${MIN_MAX_AGE}`,
-      detail: `Current max-age is ${maxAge}, raise it for preload eligibility`,
+      title: 'HSTS max-age under a year',
+      detail: `Current max-age is ${maxAge}, raise it to ${MIN_MAX_AGE} for preload eligibility`,
     });
   }
-  if (!header.includes('includesubdomains')) {
+  if (!includeSubDomains) {
     out.push({
       severity: 'warning',
       title: 'HSTS missing includeSubDomains',
       detail: 'Add includeSubDomains to protect every subdomain',
     });
   }
-  if (!header.includes('preload')) {
+  if (!preload) {
     out.push({
       severity: 'info',
       title: 'HSTS missing preload directive',

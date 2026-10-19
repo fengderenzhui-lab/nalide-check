@@ -4,10 +4,6 @@ import { Card } from 'client/components/Form/Card';
 import Row from 'client/components/Form/Row';
 
 const cardStyles = `
-span.val {
-  &.up { color: ${colors.success}; }
-  &.down { color: ${colors.danger}; }
-}
 .rank-average {
   text-align: center;
   font-size: 1.8rem;

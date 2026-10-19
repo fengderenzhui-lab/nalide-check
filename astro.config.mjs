@@ -51,11 +51,18 @@ const separateBuildCache = {
   },
 };
 
+// Drop the trailing slash from sitemap URLs, so they match canonicals and links
+const dropTrailingSlash = (item) => {
+  const url = new URL(item.url);
+  url.pathname = url.pathname.replace(/\/$/, '');
+  return { ...item, url: url.href };
+};
+
 // Initialize Astro integrations
 const integrations = [
   svelte(),
   react(),
-  sitemap({ filter: (page) => !page.includes('/account') }),
+  sitemap({ filter: (page) => !page.includes('/account'), serialize: dropTrailingSlash }),
   separateBuildCache,
 ];
 

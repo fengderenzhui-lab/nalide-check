@@ -1,28 +1,34 @@
 import { Card } from 'client/components/Form/Card';
-import Row from 'client/components/Form/Row';
-import { SEVERITIES, type Severity } from 'client/analysis/types';
+import Row, { type RowProps } from 'client/components/Form/Row';
+import { fromFindings } from 'client/components/misc/Icon';
 import { HEADERS, checkHeader, hasFrameAncestors } from 'client/analysis/rules/http-security';
+import type { TermId } from '@/data/glossary';
 
 const cardStyles = `
   span.lbl { flex: none !important; }
-  span.val { flex: 1; text-align: right; }
+  span.val { flex: 1 1 auto !important; max-width: none !important; }
 `;
 
-const ICONS: Record<Severity, string> = {
-  critical: '❌',
-  issue: '❌',
-  warning: '⚠️',
-  info: 'ⓘ',
-  pass: '✅',
+// The glossary term behind each header
+const TERMS: Record<string, TermId> = {
+  contentSecurityPolicy: 'content-security-policy',
+  strictTransportPolicy: 'strict-transport-security',
+  xContentTypeOptions: 'x-content-type-options',
+  xFrameOptions: 'x-frame-options',
+  referrerPolicy: 'referrer-policy',
+  permissionsPolicy: 'permissions-policy',
+  crossOriginOpenerPolicy: 'cross-origin-opener-policy',
+  crossOriginResourcePolicy: 'cross-origin-resource-policy',
+  crossOriginEmbedderPolicy: 'cross-origin-embedder-policy',
+  xXSSProtection: 'x-xss-protection',
 };
 
-// A header's value, marked with its worst finding
-const showHeader = (d: any, key: string) => {
-  const severities = checkHeader(d, key).map((finding) => finding.severity);
-  const icon = ICONS[SEVERITIES.find((s) => severities.includes(s)) || 'pass'];
-  if (d[key]) return `${icon} ${d[key]}`;
-  return `${icon} ${key === 'xFrameOptions' && hasFrameAncestors(d) ? 'Via CSP' : 'No'}`;
-};
+// A header's value, with the status and any problems from its findings
+const showHeader = (d: any, key: string): RowProps => ({
+  val: d[key] || (key === 'xFrameOptions' && hasFrameAncestors(d) ? 'Via CSP' : 'No'),
+  term: TERMS[key],
+  ...fromFindings(checkHeader(d, key)),
+});
 
 const HttpSecurityCard = (props: { data: any; title: string; actionButtons: any }): JSX.Element => {
   const d = props.data;
@@ -31,7 +37,7 @@ const HttpSecurityCard = (props: { data: any; title: string; actionButtons: any 
       {Object.entries(HEADERS).map(
         ([key, label]) =>
           (d[key] || key !== 'xXSSProtection') && (
-            <Row key={key} lbl={label} val={showHeader(d, key)} />
+            <Row key={key} lbl={label} {...showHeader(d, key)} />
           ),
       )}
     </Card>

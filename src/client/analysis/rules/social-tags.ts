@@ -1,10 +1,10 @@
 import type { Analyzer } from '../types';
 
-const REQUIRED: Array<[string, string]> = [
-  ['ogTitle', 'OpenGraph title'],
-  ['ogDescription', 'OpenGraph description'],
-  ['ogImage', 'OpenGraph image'],
-  ['twitterCard', 'Twitter card type'],
+export const REQUIRED: Array<[string, string]> = [
+  ['ogTitle', 'OpenGraph Title'],
+  ['ogDescription', 'OpenGraph Description'],
+  ['ogImage', 'OpenGraph Image'],
+  ['twitterCard', 'Twitter Card'],
 ];
 
 // Flag missing share-preview metadata

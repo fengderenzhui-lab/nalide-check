@@ -1,7 +1,20 @@
-import type { Analyzer } from '../types';
+import type { Analyzer, Result } from '../types';
 
 const SLOW_MS = 2000;
 const VERY_SLOW_MS = 5000;
+
+// A note on a slow response time, or null when it's quick enough
+export const checkResponseTime = (ms: number): Result | null => {
+  if (ms >= VERY_SLOW_MS) {
+    return {
+      severity: 'warning',
+      title: `Slow response time: ${Math.round(ms)}ms`,
+      detail: 'Investigate server performance, caching or CDN coverage',
+    };
+  }
+  if (ms >= SLOW_MS) return { severity: 'info', title: `Response time over ${SLOW_MS}ms` };
+  return null;
+};
 
 // Reachability + latency. Non-success codes never reach here, the API throws
 const status: Analyzer = (d) => {
@@ -10,18 +23,8 @@ const status: Analyzer = (d) => {
   if (Number.isFinite(code)) {
     out.push({ severity: 'pass', title: `Site responded with ${code}` });
   }
-  const t = Number(d.responseTime);
-  if (Number.isFinite(t)) {
-    if (t >= VERY_SLOW_MS) {
-      out.push({
-        severity: 'warning',
-        title: `Slow response time: ${Math.round(t)}ms`,
-        detail: 'Investigate server performance, caching or CDN coverage',
-      });
-    } else if (t >= SLOW_MS) {
-      out.push({ severity: 'info', title: `Response time over ${SLOW_MS}ms` });
-    }
-  }
+  const slow = checkResponseTime(Number(d.responseTime));
+  if (slow) out.push(slow);
   return out;
 };
 

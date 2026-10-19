@@ -21,6 +21,16 @@ export const StyledCard = styled.section<{ styles?: string }>`
   ${(props) => props.styles}
 `;
 
+// Small print under a card's rows
+export const Note = styled.small`
+  display: block;
+  margin-top: 0.75rem;
+  opacity: 0.5;
+  a {
+    color: ${colors.primary};
+  }
+`;
+
 interface CardProps {
   children: ReactNode;
   heading?: string;

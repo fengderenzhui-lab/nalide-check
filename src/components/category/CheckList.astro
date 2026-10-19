@@ -14,23 +14,21 @@ const { ids, heading = 'What gets checked', showCategories = false } = Astro.pro
 <section class="checks">
   <h2>{heading}</h2>
   <ul>
-    {
-      ids.map((id) => (
-        <li id={id}>
-          <a href={`/${id}`}>
-            <h3>{checks[id].title}</h3>
-            <p>{checks[id].summary}</p>
-          </a>
-          {showCategories && (
-            <p class="tags">
-              {checks[id].categories.map((category) => (
-                <a href={`/${category}`}>{categories[category].label}</a>
-              ))}
-            </p>
-          )}
-        </li>
-      ))
-    }
+    {ids.map((id) => (
+      <li id={id}>
+        <a href={`/${id}`}>
+          <h3>{checks[id].title}</h3>
+          <p>{checks[id].summary}</p>
+        </a>
+        {showCategories && (
+          <p class="tags">
+            {checks[id].categories.map((category) => (
+              <a href={`/${category}`}>{categories[category].label}</a>
+            ))}
+          </p>
+        )}
+      </li>
+    ))}
   </ul>
 </section>
 

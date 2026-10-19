@@ -1,70 +1,31 @@
 import { Card } from 'client/components/Form/Card';
 import Row, { ExpandableRow } from 'client/components/Form/Row';
-import colors from 'client/styles/colors';
+import { getPath } from 'client/utils/result-processor';
 
-const cardStyles = `
-  max-height: 50rem;
-  overflow-y: auto;
-  a {
-    color: ${colors.primary};
-  }
-  small {
-    margin-top: 1rem;
-    opacity: 0.5;
-    display: block;
-    a { color: ${colors.primary}; }
-  }
-`;
+// Rows shown when a page is expanded, skipping any the sitemap leaves out
+const details = (page: any) =>
+  [
+    { lbl: 'Last Modified', val: page.lastmod?.[0] },
+    { lbl: 'Change Frequency', val: page.changefreq?.[0] },
+    { lbl: 'Priority', val: page.priority?.[0] },
+  ].filter((row) => row.val);
 
 const SitemapCard = (props: { data: any; title: string; actionButtons: any }): JSX.Element => {
-  const normalSiteMap = props.data.url || props.data.urlset?.url || null;
-  const siteMapIndex = props.data.sitemapindex?.sitemap || null;
-
-  const makeExpandableRowData = (site: any) => {
-    const results = [];
-    if (site.lastmod) {
-      results.push({ lbl: 'Last Modified', val: site.lastmod[0] });
-    }
-    if (site.changefreq) {
-      results.push({ lbl: 'Change Frequency', val: site.changefreq[0] });
-    }
-    if (site.priority) {
-      results.push({ lbl: 'Priority', val: site.priority[0] });
-    }
-    return results;
-  };
-
-  const getPathFromUrl = (url: string) => {
-    try {
-      const urlObj = new URL(url);
-      return urlObj.pathname;
-    } catch (e) {
-      return url;
-    }
-  };
-
+  const pages = props.data.url || props.data.urlset?.url || [];
+  const sitemaps = props.data.sitemapindex?.sitemap || [];
   return (
-    <Card heading={props.title} actionButtons={props.actionButtons} styles={cardStyles}>
-      {normalSiteMap &&
-        normalSiteMap.map((subpage: any, index: number) => {
-          return (
-            <ExpandableRow
-              lbl={getPathFromUrl(subpage.loc[0])}
-              key={index}
-              val=""
-              rowList={makeExpandableRowData(subpage)}
-            ></ExpandableRow>
-          );
-        })}
-      {siteMapIndex && <p>This site returns a sitemap index, which is a list of sitemaps.</p>}
-      {siteMapIndex &&
-        siteMapIndex.map((subpage: any, index: number) => {
-          return (
-            <Row lbl="" val="" key={index}>
-              <a href={subpage.loc[0]}>{getPathFromUrl(subpage.loc[0])}</a>
-            </Row>
-          );
-        })}
+    <Card heading={props.title} actionButtons={props.actionButtons}>
+      {pages.map((page: any, index: number) => (
+        <ExpandableRow key={index} lbl={getPath(page.loc[0])} rowList={details(page)} />
+      ))}
+      {sitemaps.length > 0 && (
+        <p>This site returns a sitemap index, which is a list of sitemaps.</p>
+      )}
+      {sitemaps.map((sitemap: any, index: number) => (
+        <Row key={index}>
+          <a href={sitemap.loc[0]}>{getPath(sitemap.loc[0])}</a>
+        </Row>
+      ))}
     </Card>
   );
 };

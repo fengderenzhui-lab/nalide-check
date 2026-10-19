@@ -33,6 +33,13 @@ const DKIM_SELECTORS = [
   'fm1',
   'fm2',
   'fm3',
+  'brevo1',
+  'brevo2',
+  'hostingermail-a',
+  'hostingermail-b',
+  'hostingermail-c',
+  'x',
+  'devil',
 ];
 
 // Split a "tag=value; tag=value" record into an object keyed by lowercase tag

@@ -1,6 +1,7 @@
 import { Card } from 'client/components/Form/Card';
 import Row from 'client/components/Form/Row';
 import colors from 'client/styles/colors';
+import { REQUIRED } from 'client/analysis/rules/social-tags';
 
 const cardStyles = `
   .banner-image img {
@@ -33,8 +34,17 @@ const SocialTagsCard = (props: { data: any; title: string; actionButtons: any })
       {tags.description && <Row lbl="Description" val={tags.description} />}
       {tags.keywords && <Row lbl="Keywords" val={tags.keywords} />}
       {tags.canonicalUrl && <Row lbl="Canonical URL" val={tags.canonicalUrl} />}
+      {REQUIRED.map(([key, label]) => (
+        <Row
+          key={key}
+          lbl={label}
+          val={tags[key] || 'Missing'}
+          status={tags[key] ? 'pass' : 'warning'}
+          term={key === 'twitterCard' ? 'twitter-card' : 'open-graph'}
+        />
+      ))}
       {tags.themeColor && (
-        <Row lbl="" val="">
+        <Row>
           <span className="lbl">Theme Color</span>
           <span className="val color-field" style={{ background: tags.themeColor }}>
             {tags.themeColor}
@@ -42,18 +52,11 @@ const SocialTagsCard = (props: { data: any; title: string; actionButtons: any })
         </Row>
       )}
       {tags.twitterSite && (
-        <Row lbl="" val="">
-          <span className="lbl">X Profile</span>
-          <span className="val">
-            {tags.xHandle ? (
-              <a target="_blank" rel="noreferrer" href={`https://x.com/${tags.xHandle}`}>
-                @{tags.xHandle}
-              </a>
-            ) : (
-              tags.twitterSite
-            )}
-          </span>
-        </Row>
+        <Row
+          lbl="X Profile"
+          val={tags.xHandle ? `@${tags.xHandle}` : tags.twitterSite}
+          link={tags.xHandle && `https://x.com/${tags.xHandle}`}
+        />
       )}
       {tags.author && <Row lbl="Author" val={tags.author} />}
       {tags.publisher && <Row lbl="Publisher" val={tags.publisher} />}

@@ -6,8 +6,6 @@ import Flag from 'client/components/misc/Flag';
 import { TextSizes } from 'client/styles/typography';
 import Row, { StyledRow } from 'client/components/Form/Row';
 
-const cardStyles = '';
-
 const SmallText = styled.span`
   opacity: 0.5;
   font-size: ${TextSizes.xSmall};
@@ -34,13 +32,13 @@ const ServerLocationCard = (props: {
   const { city, region, country, postCode, countryCode, coords, isp, asn, timezone } = location;
 
   return (
-    <Card heading={props.title} actionButtons={props.actionButtons} styles={cardStyles}>
+    <Card heading={props.title} actionButtons={props.actionButtons}>
       {(postCode || city || region) && (
         <Row lbl="City" val={[postCode, city, region].filter(Boolean).join(', ')} />
       )}
       {country && (
-        <Row lbl="" val="">
-          <b>Country</b>
+        <Row>
+          <span className="lbl">Country</span>
           <CountryValue>
             {country}
             {countryCode && <Flag countryCode={countryCode} width={28} />}

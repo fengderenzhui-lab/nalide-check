@@ -1,6 +1,6 @@
 import type { Analyzer } from '../types';
 
-const LEAK_HEADERS = ['x-powered-by', 'server', 'x-aspnet-version', 'x-aspnetmvc-version'];
+export const LEAK_HEADERS = ['x-powered-by', 'server', 'x-aspnet-version', 'x-aspnetmvc-version'];
 
 // Surface server fingerprint headers as informational findings
 const headers: Analyzer = (d) => {

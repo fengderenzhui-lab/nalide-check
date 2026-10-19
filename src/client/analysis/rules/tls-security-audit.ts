@@ -20,6 +20,9 @@ const rank = (s: Severity) => RANK.indexOf(s);
 // GRADE_SEVERITY keys are ordered best to worst
 const GRADES = Object.keys(GRADE_SEVERITY);
 
+// How serious an SSL Labs grade is, info for grades it doesn't list
+export const gradeSeverity = (grade: string): Severity => GRADE_SEVERITY[grade] || 'info';
+
 // Surface the worst SSL Labs endpoint grade for this host
 const tlsSecurityAudit: Analyzer = (d) => {
   if (!d || !Array.isArray(d.endpoints) || !d.endpoints.length) return [];
@@ -31,7 +34,7 @@ const tlsSecurityAudit: Analyzer = (d) => {
   let severity: Severity = 'pass';
   let worstGrade = grades[0];
   for (const g of grades) {
-    const sev = GRADE_SEVERITY[g] || 'info';
+    const sev = gradeSeverity(g);
     if (rank(sev) > rank(severity)) severity = sev;
     if (GRADES.indexOf(g) > GRADES.indexOf(worstGrade)) worstGrade = g;
   }

@@ -1,4 +1,4 @@
-import type { Analyzer } from '../types';
+import type { Analyzer, Result } from '../types';
 
 // Parse Set-Cookie headers (one per array element) into name + attribute list,
 // skipping nameless entries (empty lines, cookie-deletion stubs like "=; Path=/")
@@ -14,22 +14,26 @@ const parseCookies = (raw: unknown): Array<{ name: string; attrs: string[] }> =>
     .filter((c) => c.name);
 };
 
+// The Secure, HttpOnly and SameSite flags a cookie is missing, from its lowercase attribute names
+export const checkCookie = (name: string, attrs: string[]): Result[] => {
+  const out: Result[] = [];
+  if (!attrs.includes('secure')) {
+    out.push({ severity: 'issue', title: `Cookie "${name}" missing Secure flag` });
+  }
+  if (!attrs.includes('httponly')) {
+    out.push({ severity: 'warning', title: `Cookie "${name}" missing HttpOnly flag` });
+  }
+  if (!attrs.includes('samesite')) {
+    out.push({ severity: 'warning', title: `Cookie "${name}" missing SameSite flag` });
+  }
+  return out;
+};
+
 // Audit Set-Cookie attributes for Secure, HttpOnly, SameSite
 const cookies: Analyzer = (d) => {
   const parsed = parseCookies(d.headerCookies);
   if (!parsed.length) return [];
-  const out: ReturnType<Analyzer> = [];
-  for (const { name, attrs } of parsed) {
-    if (!attrs.includes('secure')) {
-      out.push({ severity: 'issue', title: `Cookie "${name}" missing Secure flag` });
-    }
-    if (!attrs.includes('httponly')) {
-      out.push({ severity: 'warning', title: `Cookie "${name}" missing HttpOnly flag` });
-    }
-    if (!attrs.includes('samesite')) {
-      out.push({ severity: 'warning', title: `Cookie "${name}" missing SameSite flag` });
-    }
-  }
+  const out = parsed.flatMap(({ name, attrs }) => checkCookie(name, attrs));
   if (!out.length)
     out.push({ severity: 'pass', title: 'All cookies use Secure/HttpOnly/SameSite' });
   return out;

@@ -6,7 +6,7 @@ type Findings = ReturnType<Analyzer>;
 const hosts = (urls: string[]) => [...new Set(urls.map((url) => new URL(url).hostname))].join(', ');
 
 // Flag http resources on an https page, unless its CSP upgrades them
-const mixedFindings = (d: any): Findings => {
+export const mixedFindings = (d: any): Findings => {
   if (!String(d.url).startsWith('https:')) return [];
   const { active = [], passive = [], forms = [] } = d;
   const count = active.length + passive.length + forms.length;
@@ -48,9 +48,9 @@ const mixedFindings = (d: any): Findings => {
 };
 
 // Flag third-party scripts without SRI, and hashed scripts browsers will refuse to run
-const integrityFindings = (d: any): Findings => {
+export const integrityFindings = (d: any): Findings => {
   const { versioned = [], unversioned = [] } = d.missingIntegrity || {};
-  const blocked: string[] = d.missingCrossorigin;
+  const blocked: string[] = d.missingCrossorigin || [];
   const unhashed = [...versioned, ...unversioned];
   const out: Findings = [];
   if (d.integrityPolicy) {

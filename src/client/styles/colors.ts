@@ -6,6 +6,7 @@ const colors = {
   background: 'var(--background)',
   backgroundDarker: '#000000',
   backgroundLighter: 'var(--background-raised)',
+  backgroundOverlay: 'var(--background-overlay)',
   bgShadowColor: '#101010',
   primaryTransparent: 'var(--primary-transparent)',
 

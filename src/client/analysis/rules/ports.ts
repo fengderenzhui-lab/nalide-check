@@ -1,7 +1,7 @@
 import type { Analyzer, Severity } from '../types';
 
 // Port -> [severity, description]. Anything not listed is informational
-const RISKY: Record<number, [Severity, string]> = {
+export const RISKY: Record<number, [Severity, string]> = {
   21: ['warning', 'FTP (cleartext file transfer)'],
   23: ['critical', 'Telnet (cleartext shell)'],
   25: ['info', 'SMTP (mail server)'],

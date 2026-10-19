@@ -1,6 +1,11 @@
-import type { Analyzer } from '../types';
+import type { Analyzer, Severity } from '../types';
 
-const ADVERTISING = ['Advertising', 'Adult Advertising'];
+// The tracker categories worth flagging, and how much
+export const FLAGGED: Record<string, Severity> = {
+  Advertising: 'warning',
+  'Adult Advertising': 'warning',
+  'Site Analytics': 'info',
+};
 
 const names = (list: any[]): string => list.map((t) => t.name).join(', ');
 
@@ -8,8 +13,8 @@ const names = (list: any[]): string => list.map((t) => t.name).join(', ');
 const trackers: Analyzer = (d) => {
   const list: any[] = Array.isArray(d.trackers) ? d.trackers : [];
   const others: string[] = Array.isArray(d.otherTrackers) ? d.otherTrackers : [];
-  const ads = list.filter((t) => ADVERTISING.includes(t.category));
-  const analytics = list.filter((t) => t.category === 'Site Analytics');
+  const ads = list.filter((t) => FLAGGED[t.category] === 'warning');
+  const analytics = list.filter((t) => FLAGGED[t.category] === 'info');
   const out: ReturnType<Analyzer> = [];
   if (ads.length) {
     out.push({

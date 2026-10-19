@@ -1,16 +1,5 @@
-import styled from '@emotion/styled';
-import colors from 'client/styles/colors';
-import { Card } from 'client/components/Form/Card';
+import { Card, Note } from 'client/components/Form/Card';
 import Row from 'client/components/Form/Row';
-
-const Note = styled.small`
-  opacity: 0.5;
-  display: block;
-  margin-top: 0.5rem;
-  a {
-    color: ${colors.primary};
-  }
-`;
 
 const ArchivesCard = (props: { data: any; title: string; actionButtons: any }): JSX.Element => {
   const data = props.data;

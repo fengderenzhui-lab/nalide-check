@@ -1,23 +1,6 @@
-import styled from '@emotion/styled';
-import colors from 'client/styles/colors';
 import { Card } from 'client/components/Form/Card';
-import Row, { ExpandableRow } from 'client/components/Form/Row';
-
-const Expandable = styled.details`
-  margin-top: 0.5rem;
-  cursor: pointer;
-  summary::marker {
-    color: ${colors.primary};
-  }
-`;
-
-const getExpandableTitle = (urlObj: any) => {
-  let pathName = '';
-  try {
-    pathName = new URL(urlObj.url).pathname;
-  } catch (e) {}
-  return `${pathName} (${urlObj.id})`;
-};
+import Row, { ExpandableRow, Section } from 'client/components/Form/Row';
+import { getPath } from 'client/utils/result-processor';
 
 const convertToDate = (dateString: string): string => {
   const [date, time] = dateString.split(' ');
@@ -35,50 +18,61 @@ const MalwareCard = (props: { data: any; title: string; actionButtons: any }): J
   const phishTank = props.data.phishTank || {};
   const cloudmersive = props.data.cloudmersive || {};
   const safeBrowsing = props.data.safeBrowsing || {};
+  const phished = phishTank.url0?.in_database === 'true' && phishTank.url0?.valid === 'true';
   return (
     <Card heading={props.title} actionButtons={props.actionButtons}>
-      {safeBrowsing && !safeBrowsing.error && (
-        <Row lbl="Google Safe Browsing" val={safeBrowsing.unsafe ? '❌ Unsafe' : '✅ Safe'} />
-      )}
-      {((cloudmersive && !cloudmersive.error) || safeBrowsing?.details) && (
+      {!safeBrowsing.error && (
         <Row
-          lbl="Threat Type"
-          val={
-            safeBrowsing?.details?.[0]?.threatType || cloudmersive.WebsiteThreatType || 'None :)'
-          }
+          lbl="Google Safe Browsing"
+          val={!safeBrowsing.unsafe}
+          yes="Safe"
+          no="Unsafe"
+          term="safe-browsing"
         />
       )}
-      {phishTank && !phishTank.error && (
+      {typeof cloudmersive.CleanResult === 'boolean' && (
+        <Row
+          lbl="Cloudmersive"
+          val={cloudmersive.CleanResult}
+          yes="Safe"
+          no="Unsafe"
+          term="threat-scan"
+        />
+      )}
+      {(!cloudmersive.error || safeBrowsing.details) && (
+        <Row
+          lbl="Threat Type"
+          val={safeBrowsing.details?.[0]?.threatType || cloudmersive.WebsiteThreatType || 'None'}
+        />
+      )}
+      {!phishTank.error && (
         <Row
           lbl="Phishing Status"
-          val={
-            phishTank?.url0?.in_database === 'true' && phishTank?.url0?.valid === 'true'
-              ? '❌ Phishing Identified'
-              : '✅ No Phishing Found'
-          }
+          val={!phished}
+          yes="No Phishing Found"
+          no="Phishing Identified"
+          term="phishing"
         />
       )}
       {phishTank.url0?.valid === 'true' && phishTank.url0.phish_detail_page && (
-        <Row lbl="" val="">
-          <span className="lbl">Phish Info</span>
-          <span className="val">
-            <a href={phishTank.url0.phish_detail_page}>{phishTank.url0.phish_id}</a>
-          </span>
-        </Row>
+        <Row
+          lbl="Phish Info"
+          val={phishTank.url0.phish_id}
+          link={phishTank.url0.phish_detail_page}
+        />
       )}
       {urlHaus.query_status === 'no_results' && (
-        <Row lbl="Malware Status" val="✅ No Malwares Found" />
+        <Row lbl="Malware Status" val="No Malware Found" status="pass" term="malware" />
       )}
       {urlHaus.query_status === 'ok' && (
         <>
-          <Row lbl="Status" val="❌ Malware Identified" />
+          <Row lbl="Status" val="Malware Identified" status="error" term="malware" />
           <Row lbl="First Seen" val={convertToDate(urlHaus.firstseen)} />
           <Row lbl="Bad URLs Count" val={urlHaus.url_count} />
         </>
       )}
       {urlHaus.urls && (
-        <Expandable>
-          <summary>Expand Results</summary>
+        <Section title="Reported URLs" collapsible>
           {urlHaus.urls.map((urlResult: any) => {
             const rows = [
               { lbl: 'ID', val: urlResult.id },
@@ -96,9 +90,15 @@ const MalwareCard = (props: { data: any; title: string; actionButtons: any }): J
               { lbl: 'Reference', val: urlResult.urlhaus_reference },
               { lbl: 'File Path', val: urlResult.url },
             ];
-            return <ExpandableRow lbl={getExpandableTitle(urlResult)} val="" rowList={rows} />;
+            return (
+              <ExpandableRow
+                key={urlResult.id}
+                lbl={`${getPath(urlResult.url)} (${urlResult.id})`}
+                rowList={rows}
+              />
+            );
           })}
-        </Expandable>
+        </Section>
       )}
     </Card>
   );

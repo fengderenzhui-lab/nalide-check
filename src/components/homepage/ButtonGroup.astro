@@ -14,14 +14,12 @@ const { links } = Astro.props;
 ---
 
 <div class="button-wrap">
-  {
-    links.map((link: Props['links'][number]) => (
-      <a href={link.url} class={link.isCta ? 'cta' : ''}>
-        <Icon name={link.icon} size={2} />
-        {link.title}
-      </a>
-    ))
-  }
+  {links.map((link: Props['links'][number]) => (
+    <a href={link.url} class={link.isCta ? 'cta' : ''}>
+      <Icon name={link.icon} size={2} />
+      {link.title}
+    </a>
+  ))}
 </div>
 
 <style lang="scss">

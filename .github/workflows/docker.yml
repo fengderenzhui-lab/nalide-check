@@ -53,7 +53,7 @@ jobs:
       latest: ${{ steps.resolve.outputs.latest }}
     steps:
       - name: 🛎️ Checkout (with tags)
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
@@ -134,7 +134,7 @@ jobs:
     runs-on: ${{ matrix.runner }}
     steps:
       - name: 🛎️ Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           ref: ${{ needs.prepare.outputs.ref }}
 

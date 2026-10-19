@@ -1,72 +1,69 @@
-import { Card } from 'client/components/Form/Card';
-import Row, { Details } from 'client/components/Form/Row';
-import colors from 'client/styles/colors';
-
-const cardStyles = `
-small {
-  margin-top: 1rem;
-  opacity: 0.5;
-  display: block;
-  a { color: ${colors.primary}; }
-}
-summary {
-  padding: 0.5rem 0 0 0.5rem !important;
-  cursor: pointer;
-  font-weight: bold;
-}
-pre {
-  background: ${colors.background};
-  padding: 0.5rem 0.25rem;
-  border-radius: 4px;
-  white-space: pre-wrap;
-}
-`;
-
-const getPagePath = (url: string): string => {
-  try {
-    return new URL(url).pathname;
-  } catch (error) {
-    return url;
-  }
-};
+import { Card, Note } from 'client/components/Form/Card';
+import Row, { Section } from 'client/components/Form/Row';
+import { fromFinding } from 'client/components/misc/Icon';
+import { getPath } from 'client/utils/result-processor';
+import { checkContact, checkExpires, getField } from 'client/analysis/rules/security-txt';
 
 const SecurityTxtCard = (props: { data: any; title: string; actionButtons: any }): JSX.Element => {
-  const securityTxt = props.data;
+  const { isPresent, foundIn, isPgpSigned, fields = {}, content } = props.data;
+  const contact = checkContact(fields);
+  const expires = checkExpires(fields);
   return (
-    <Card heading={props.title} actionButtons={props.actionButtons} styles={cardStyles}>
-      <Row lbl="Present" val={securityTxt.isPresent ? '✅ Yes' : '❌ No'} />
-      {securityTxt.isPresent && (
+    <Card heading={props.title} actionButtons={props.actionButtons}>
+      <Row
+        lbl="Present"
+        val={!!isPresent}
+        status={isPresent ? 'pass' : 'warning'}
+        term="security-txt"
+      />
+      {isPresent && (
         <>
-          <Row lbl="File Location" val={securityTxt.foundIn} />
-          <Row lbl="PGP Signed" val={securityTxt.isPgpSigned ? '✅ Yes' : '❌ No'} />
-          {securityTxt.fields &&
-            Object.keys(securityTxt.fields).map((field: string, index: number) => {
-              if (securityTxt.fields[field].includes('http'))
-                return (
-                  <Row lbl="" val="" key={`policy-url-row-${index}`}>
-                    <span className="lbl">{field}</span>
-                    <span className="val">
-                      <a href={securityTxt.fields[field]}>
-                        {getPagePath(securityTxt.fields[field])}
-                      </a>
-                    </span>
-                  </Row>
-                );
-              return (
-                <Row lbl={field} val={securityTxt.fields[field]} key={`policy-row-${index}`} />
-              );
-            })}
-          <Details>
-            <summary>View Full Policy</summary>
-            <pre>{securityTxt.content}</pre>
-          </Details>
+          <Row lbl="File Location" val={foundIn} />
+          <Row
+            lbl="PGP Signed"
+            val={!!isPgpSigned}
+            status={isPgpSigned ? 'pass' : 'info'}
+            term="security-txt-signature"
+          />
+          {contact && (
+            <Row
+              lbl="Contact"
+              val="Missing"
+              term="security-txt-contact"
+              {...fromFinding(contact)}
+            />
+          )}
+          {!getField(fields, 'expires') && (
+            <Row
+              lbl="Expires"
+              val="Missing"
+              term="security-txt-expires"
+              {...fromFinding(expires)}
+            />
+          )}
+          {Object.entries(fields).map(([field, value]: [string, any]) => {
+            const isLink = value.includes('http');
+            return (
+              <Row
+                key={field}
+                lbl={field}
+                val={isLink ? getPath(value) : value}
+                link={isLink ? value : undefined}
+                term="security-txt-expires"
+                {...fromFinding(field.toLowerCase() === 'expires' ? expires : null)}
+              />
+            );
+          })}
+          <Section title="View Full Policy" collapsible>
+            <Row plaintext={content} />
+          </Section>
         </>
       )}
-      {!securityTxt.isPresent && (
-        <small>
+      {!isPresent && (
+        <Note>
           Having a security.txt ensures security researchers know how and where to safely report
           vulnerabilities.
-        </small>
+        </Note>
       )}
     </Card>
   );

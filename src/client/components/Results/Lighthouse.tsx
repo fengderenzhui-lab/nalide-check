@@ -1,24 +1,39 @@
 import { Card } from 'client/components/Form/Card';
-import { ExpandableRow } from 'client/components/Form/Row';
-
-const processScore = (percentile: number) => {
-  return `${Math.round(percentile * 100)}%`;
-};
+import { ExpandableRow, type RowProps } from 'client/components/Form/Row';
+import { toStatus } from 'client/components/misc/Icon';
+import { scoreSeverity } from 'client/analysis/rules/quality';
+import type { TermId } from '@/data/glossary';
 
 interface Audit {
   id: string;
-  score?: number | string;
-  scoreDisplayMode?: string;
+  score?: number | null;
   title?: string;
   description?: string;
   displayValue?: string;
 }
 
-const makeValue = (audit: Audit) => {
-  if (audit.displayValue) return audit.displayValue;
-  if (audit.score == null) return 'N/A';
-  if (audit.scoreDisplayMode === 'binary') return audit.score === 1 ? '✅ Pass' : '❌ Fail';
-  return audit.score;
+// The glossary term for each Lighthouse category
+const TERMS: Record<string, TermId> = {
+  performance: 'lighthouse-performance',
+  accessibility: 'lighthouse-accessibility',
+  'best-practices': 'lighthouse-best-practices',
+  seo: 'lighthouse-seo',
+};
+
+// Lighthouse's words for its green, orange and red scores
+const SCORE_TEXT = { pass: 'Pass', warning: 'Average', error: 'Fail' };
+
+// A category's score as a percentage, with the analyzer's status for it
+const categoryValue = (score?: number | null): RowProps =>
+  typeof score === 'number'
+    ? { val: `${Math.round(score * 100)}%`, status: toStatus(scoreSeverity(score)) }
+    : { val: 'N/A' };
+
+// An audit's value, coloured the way Lighthouse colours its scores
+const auditValue = ({ score, displayValue }: Audit): RowProps => {
+  if (typeof score !== 'number') return { val: displayValue || 'N/A' };
+  const status = score >= 0.9 ? 'pass' : score >= 0.5 ? 'warning' : 'error';
+  return { val: displayValue || SCORE_TEXT[status], status };
 };
 
 const LighthouseCard = (props: { data: any; title: string; actionButtons: any }): JSX.Element => {
@@ -33,16 +48,16 @@ const LighthouseCard = (props: { data: any; title: string; actionButtons: any })
         const scoreList = scoreIds.map((id: string) => {
           return {
             lbl: audits[id].title,
-            val: makeValue(audits[id]),
             title: audits[id].description,
-            key: id,
+            ...auditValue(audits[id]),
           };
         });
         return (
           <ExpandableRow
             key={`lighthouse-${index}`}
             lbl={categories[key].title || key}
-            val={processScore(categories[key].score)}
+            term={TERMS[key]}
+            {...categoryValue(categories[key].score)}
             rowList={scoreList}
           />
         );

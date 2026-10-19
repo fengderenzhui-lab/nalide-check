@@ -1,220 +1,127 @@
 import { Card } from 'client/components/Form/Card';
-import Row, { ExpandableRow, type RowProps } from 'client/components/Form/Row';
-import Heading from 'client/components/Form/Heading';
-import colors from 'client/styles/colors';
+import Row, { ExpandableRow, Section, type RowProps } from 'client/components/Form/Row';
+import type { TermId } from '@/data/glossary';
+
+const KEY_FLAGS: Record<number, string> = {
+  256: 'Zone Signing Key (ZSK)',
+  257: 'Key Signing Key (KSK)',
+};
+
+const KEY_ALGORITHMS: Record<number, string> = {
+  5: 'RSA/SHA-1',
+  7: 'RSASHA1-NSEC3-SHA1',
+  8: 'RSA/SHA-256',
+  10: 'RSA/SHA-512',
+  13: 'ECDSA Curve P-256 with SHA-256',
+  14: 'ECDSA Curve P-384 with SHA-384',
+  15: 'Ed25519',
+  16: 'Ed448',
+};
+
+const DS_ALGORITHMS: Record<number, string> = {
+  1: 'RSA/MD5',
+  2: 'Diffie-Hellman',
+  3: 'DSA/SHA1',
+  5: 'RSA/SHA1',
+  6: 'DSA/NSEC3/SHA1',
+  7: 'RSASHA1/NSEC3/SHA1',
+  8: 'RSA/SHA256',
+  10: 'RSA/SHA512',
+  12: 'ECC/GOST',
+  13: 'ECDSA/CurveP256/SHA256',
+  14: 'ECDSA/CurveP384/SHA384',
+  15: 'Ed25519',
+  16: 'Ed448',
+};
+
+const DIGEST_TYPES: Record<number, string> = {
+  1: 'SHA1',
+  2: 'SHA256',
+  3: 'GOST R 34.11-94',
+  4: 'SHA384',
+};
+
+const RECORD_TYPES: Record<number, string> = {
+  1: 'A',
+  2: 'NS',
+  5: 'CNAME',
+  6: 'SOA',
+  12: 'PTR',
+  13: 'HINFO',
+  15: 'MX',
+  16: 'TXT',
+  28: 'AAAA',
+  33: 'SRV',
+  35: 'NAPTR',
+  39: 'DNAME',
+  41: 'OPT',
+  43: 'DS',
+  46: 'RRSIG',
+  47: 'NSEC',
+  48: 'DNSKEY',
+  50: 'NSEC3',
+  51: 'NSEC3PARAM',
+  52: 'TLSA',
+  53: 'SMIMEA',
+  55: 'HIP',
+  56: 'NINFO',
+  57: 'RKEY',
+  58: 'TALINK',
+  59: 'CDS',
+  60: 'CDNSKEY',
+  61: 'OPENPGPKEY',
+  62: 'CSYNC',
+  63: 'ZONEMD',
+};
+
+// Each record's row label and glossary term, where RRSIG means the resolver validated the answer
+const PRESENT: Record<string, [string, TermId]> = {
+  DNSKEY: ['DNSKEY - Present?', 'dnskey'],
+  DS: ['DS - Present?', 'ds-record'],
+  RRSIG: ['RRSIG - Validated?', 'dnssec-validation'],
+};
+
+const RESPONSE_FLAGS = [
+  ['RD', 'Recursion Desired'],
+  ['RA', 'Recursion Available'],
+  ['TC', 'TrunCation'],
+  ['AD', 'Authentic Data'],
+  ['CD', 'Checking Disabled'],
+];
 
 const parseDNSKeyData = (data: string) => {
-  const dnsKey = data.split(' ');
-
-  const flags = parseInt(dnsKey[0]);
-  const protocol = parseInt(dnsKey[1]);
-  const algorithm = parseInt(dnsKey[2]);
-
-  let flagMeaning = '';
-  let protocolMeaning = '';
-  let algorithmMeaning = '';
-
-  // Flags
-  if (flags === 256) {
-    flagMeaning = 'Zone Signing Key (ZSK)';
-  } else if (flags === 257) {
-    flagMeaning = 'Key Signing Key (KSK)';
-  } else {
-    flagMeaning = 'Unknown';
-  }
-
-  // Protocol
-  protocolMeaning = protocol === 3 ? 'DNSSEC' : 'Unknown';
-
-  // Algorithm
-  switch (algorithm) {
-    case 5:
-      algorithmMeaning = 'RSA/SHA-1';
-      break;
-    case 7:
-      algorithmMeaning = 'RSASHA1-NSEC3-SHA1';
-      break;
-    case 8:
-      algorithmMeaning = 'RSA/SHA-256';
-      break;
-    case 10:
-      algorithmMeaning = 'RSA/SHA-512';
-      break;
-    case 13:
-      algorithmMeaning = 'ECDSA Curve P-256 with SHA-256';
-      break;
-    case 14:
-      algorithmMeaning = 'ECDSA Curve P-384 with SHA-384';
-      break;
-    case 15:
-      algorithmMeaning = 'Ed25519';
-      break;
-    case 16:
-      algorithmMeaning = 'Ed448';
-      break;
-    default:
-      algorithmMeaning = 'Unknown';
-      break;
-  }
-
+  const [flags, protocol, algorithm, publicKey] = data.split(' ');
   return {
-    flags: flagMeaning,
-    protocol: protocolMeaning,
-    algorithm: algorithmMeaning,
-    publicKey: dnsKey[3],
+    flags: KEY_FLAGS[Number(flags)],
+    protocol: protocol === '3' ? 'DNSSEC' : undefined,
+    algorithm: KEY_ALGORITHMS[Number(algorithm)],
+    publicKey,
   };
 };
 
-const getRecordTypeName = (typeCode: number): string => {
-  switch (typeCode) {
-    case 1:
-      return 'A';
-    case 2:
-      return 'NS';
-    case 5:
-      return 'CNAME';
-    case 6:
-      return 'SOA';
-    case 12:
-      return 'PTR';
-    case 13:
-      return 'HINFO';
-    case 15:
-      return 'MX';
-    case 16:
-      return 'TXT';
-    case 28:
-      return 'AAAA';
-    case 33:
-      return 'SRV';
-    case 35:
-      return 'NAPTR';
-    case 39:
-      return 'DNAME';
-    case 41:
-      return 'OPT';
-    case 43:
-      return 'DS';
-    case 46:
-      return 'RRSIG';
-    case 47:
-      return 'NSEC';
-    case 48:
-      return 'DNSKEY';
-    case 50:
-      return 'NSEC3';
-    case 51:
-      return 'NSEC3PARAM';
-    case 52:
-      return 'TLSA';
-    case 53:
-      return 'SMIMEA';
-    case 55:
-      return 'HIP';
-    case 56:
-      return 'NINFO';
-    case 57:
-      return 'RKEY';
-    case 58:
-      return 'TALINK';
-    case 59:
-      return 'CDS';
-    case 60:
-      return 'CDNSKEY';
-    case 61:
-      return 'OPENPGPKEY';
-    case 62:
-      return 'CSYNC';
-    case 63:
-      return 'ZONEMD';
-    default:
-      return 'Unknown';
-  }
-};
-
-const parseDSData = (dsData: string) => {
-  const parts = dsData.split(' ');
-
-  const keyTag = parts[0];
-  const algorithm = getAlgorithmName(parseInt(parts[1], 10));
-  const digestType = getDigestTypeName(parseInt(parts[2], 10));
-  const digest = parts[3];
-
+const parseDSData = (data: string) => {
+  const [keyTag, algorithm, digestType, digest] = data.split(' ');
   return {
     keyTag,
-    algorithm,
-    digestType,
+    algorithm: DS_ALGORITHMS[Number(algorithm)],
+    digestType: DIGEST_TYPES[Number(digestType)],
     digest,
   };
 };
 
-const getAlgorithmName = (code: number) => {
-  switch (code) {
-    case 1:
-      return 'RSA/MD5';
-    case 2:
-      return 'Diffie-Hellman';
-    case 3:
-      return 'DSA/SHA1';
-    case 5:
-      return 'RSA/SHA1';
-    case 6:
-      return 'DSA/NSEC3/SHA1';
-    case 7:
-      return 'RSASHA1/NSEC3/SHA1';
-    case 8:
-      return 'RSA/SHA256';
-    case 10:
-      return 'RSA/SHA512';
-    case 12:
-      return 'ECC/GOST';
-    case 13:
-      return 'ECDSA/CurveP256/SHA256';
-    case 14:
-      return 'ECDSA/CurveP384/SHA384';
-    case 15:
-      return 'Ed25519';
-    case 16:
-      return 'Ed448';
-    default:
-      return 'Unknown';
-  }
-};
+const makeResponseList = (response: any): RowProps[] =>
+  RESPONSE_FLAGS.filter(([key]) => typeof response?.[key] === 'boolean').map(([key, label]) => ({
+    lbl: `${label} (${key})`,
+    val: response[key] ? 'Yes' : 'No',
+  }));
 
-const getDigestTypeName = (code: number) => {
-  switch (code) {
-    case 1:
-      return 'SHA1';
-    case 2:
-      return 'SHA256';
-    case 3:
-      return 'GOST R 34.11-94';
-    case 4:
-      return 'SHA384';
-    default:
-      return 'Unknown';
-  }
-};
-
-const makeResponseList = (response: any): RowProps[] => {
-  const result = [] as RowProps[];
-  if (!response) return result;
-  if (typeof response.RD === 'boolean')
-    result.push({ lbl: 'Recursion Desired (RD)', val: response.RD });
-  if (typeof response.RA === 'boolean')
-    result.push({ lbl: 'Recursion Available (RA)', val: response.RA });
-  if (typeof response.TC === 'boolean') result.push({ lbl: 'TrunCation (TC)', val: response.TC });
-  if (typeof response.AD === 'boolean')
-    result.push({ lbl: 'Authentic Data (AD)', val: response.AD });
-  if (typeof response.CD === 'boolean')
-    result.push({ lbl: 'Checking Disabled (CD)', val: response.CD });
-  return result;
-};
-
-const makeAnswerList = (recordData: any): RowProps[] => {
-  return [
+const makeAnswerList = (recordData: any): RowProps[] =>
+  [
     { lbl: 'Domain', val: recordData.name },
-    { lbl: 'Type', val: `${getRecordTypeName(recordData.type)} (${recordData.type})` },
+    {
+      lbl: 'Type',
+      val: `${RECORD_TYPES[recordData.type] || 'Unknown'} (${recordData.type})`,
+    },
     { lbl: 'TTL', val: recordData.TTL },
     { lbl: 'Algorithm', val: recordData.algorithm },
     { lbl: 'Flags', val: recordData.flags },
@@ -223,23 +130,19 @@ const makeAnswerList = (recordData: any): RowProps[] => {
     { lbl: 'Key Tag', val: recordData.keyTag },
     { lbl: 'Digest Type', val: recordData.digestType },
     { lbl: 'Digest', val: recordData.digest },
-  ].filter((rowData) => rowData.val && rowData.val !== 'Unknown');
-};
+  ].filter((rowData) => rowData.val);
 
 const DnsSecCard = (props: { data: any; title: string; actionButtons: any }): JSX.Element => {
   const dnsSec = props.data;
   return (
     <Card heading={props.title} actionButtons={props.actionButtons}>
-      {['DNSKEY', 'DS', 'RRSIG'].map((key: string, index: number) => {
+      {Object.entries(PRESENT).map(([key, [label, term]]) => {
         const record = dnsSec[key];
         return (
-          <div key={`${key}-${index}`}>
-            <Heading as="h3" size="small" color={colors.primary}>
-              {key}
-            </Heading>
+          <Section key={key} title={key}>
             {record.isFound && record.answer && (
               <>
-                <Row lbl={`${key} - Present?`} val="✅ Yes" />
+                <Row lbl={label} val={true} term={term} />
                 {record.answer.map((answer: any, index: number) => {
                   const parsed: any =
                     answer.type === 48
@@ -247,12 +150,11 @@ const DnsSecCard = (props: { data: any; title: string; actionButtons: any }): JS
                       : answer.type === 43
                         ? parseDSData(answer.data)
                         : {};
-                  const label = parsed.flags && parsed.flags !== 'Unknown' ? parsed.flags : key;
                   return (
                     <ExpandableRow
                       key={`${key}-${index}`}
                       lbl={`Record #${index + 1}`}
-                      val={label}
+                      val={parsed.flags || key}
                       rowList={makeAnswerList({ ...answer, ...parsed })}
                       open
                     />
@@ -260,15 +162,16 @@ const DnsSecCard = (props: { data: any; title: string; actionButtons: any }): JS
                 })}
               </>
             )}
-
             {!(record.isFound && record.answer) && record.response && (
               <ExpandableRow
-                lbl={`${key} - Present?`}
-                val={record.isFound ? '✅ Yes' : '❌ No'}
+                lbl={label}
+                term={term}
+                val={!!record.isFound}
+                status={record.isFound ? 'pass' : 'warning'}
                 rowList={makeResponseList(record.response)}
               />
             )}
-          </div>
+          </Section>
         );
       })}
     </Card>

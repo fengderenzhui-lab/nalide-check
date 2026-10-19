@@ -8,6 +8,7 @@ interface Props {
   title?: string;
   description?: string;
   keywords?: string;
+  customSchemaJson?: any;
   breadcrumbs?: Array<{ name: string; item: string }>;
 }
 ---
@@ -15,12 +16,18 @@ interface Props {
 <BaseLayout {...Astro.props}>
   <slot name="head" slot="head" />
   <div class="web-check-page">
-    <slot name="background"><DotGrid /></slot>
-    <slot name="nav"><NavBar /></slot>
+    <slot name="background">
+      <DotGrid />
+    </slot>
+    <slot name="nav">
+      <NavBar />
+    </slot>
     <main>
       <slot />
     </main>
-    <slot name="footer"><Footer /></slot>
+    <slot name="footer">
+      <Footer />
+    </slot>
   </div>
 </BaseLayout>
 

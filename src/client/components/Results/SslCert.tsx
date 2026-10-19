@@ -1,48 +1,7 @@
-import styled from '@emotion/styled';
-import colors from 'client/styles/colors';
 import { Card } from 'client/components/Form/Card';
-import Heading from 'client/components/Form/Heading';
-import { ExpandableRow } from 'client/components/Form/Row';
-
-const Row = styled.div`
-  display: flex;
-  justify-content: space-between;
-  padding: 0.25rem;
-  &:not(:last-child) {
-    border-bottom: 1px solid ${colors.primaryTransparent};
-  }
-  span.lbl {
-    font-weight: bold;
-  }
-  span.val {
-    max-width: 200px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-`;
-
-const formatDate = (dateString: string): string => {
-  const date = new Date(dateString);
-  const formatter = new Intl.DateTimeFormat('en-GB', {
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
-  });
-  return formatter.format(date);
-};
-
-const DataRow = (props: { lbl: string; val: string }) => {
-  const { lbl, val } = props;
-  return (
-    <Row>
-      <span className="lbl">{lbl}</span>
-      <span className="val" title={val}>
-        {val}
-      </span>
-    </Row>
-  );
-};
+import Row, { ExpandableRow, ListRow } from 'client/components/Form/Row';
+import { fromFinding } from 'client/components/misc/Icon';
+import { REASONS, checkExpiry } from 'client/analysis/rules/ssl';
 
 function getExtendedKeyUsage(oids: string[]) {
   const oidMap: { [key: string]: string } = {
@@ -66,24 +25,6 @@ function getExtendedKeyUsage(oids: string[]) {
   const results = oids.map((oid) => oidMap[oid] || oid);
   return results.filter((item, index) => results.indexOf(item) === index);
 }
-
-const ListRow = (props: { list: string[]; title: string }) => {
-  const { list, title } = props;
-  return (
-    <>
-      <Heading as="h3" size="small" align="left" color={colors.primary}>
-        {title}
-      </Heading>
-      {list.map((entry: string, index: number) => {
-        return (
-          <Row key={`${title.toLocaleLowerCase()}-${index}`}>
-            <span>{entry}</span>
-          </Row>
-        );
-      })}
-    </>
-  );
-};
 
 // Days from a certificate's issue to its expiry
 const lifetime = ({ valid_from, valid_to }: any) =>
@@ -109,22 +50,35 @@ const SslCertCard = (props: { data: any; title: string; actionButtons: any }): J
     .filter(Boolean);
   return (
     <Card heading={props.title} actionButtons={props.actionButtons}>
-      {subject && <DataRow lbl="Subject" val={subject?.CN} />}
-      {issuer?.O && <DataRow lbl="Issuer" val={issuer.O} />}
+      {subject && <Row lbl="Subject" val={subject.CN} />}
+      {issuer?.O && <Row lbl="Issuer" val={issuer.O} />}
       {typeof sslCert.isValid === 'boolean' && (
-        <DataRow lbl="Trusted" val={sslCert.isValid ? '✅ Yes' : `❌ No (${sslCert.authError})`} />
+        <Row
+          lbl="Trusted"
+          val={sslCert.isValid}
+          no={`No (${sslCert.authError})`}
+          reason={REASONS[sslCert.authError]}
+          term="certificate-trust"
+        />
       )}
-      {key && <DataRow lbl="Public Key" val={key} />}
-      {valid_to && <DataRow lbl="Expires" val={formatDate(valid_to)} />}
-      {valid_from && <DataRow lbl="Renewed" val={formatDate(valid_from)} />}
-      {days > 0 && <DataRow lbl="Lifetime" val={`${days} days`} />}
-      {serialNumber && <DataRow lbl="Serial Num" val={serialNumber} />}
-      {fingerprint && <DataRow lbl="Fingerprint" val={fingerprint} />}
+      {key && <Row lbl="Public Key" val={key} />}
+      {valid_to && (
+        <Row
+          lbl="Expires"
+          val={valid_to}
+          term="certificate-expiry"
+          {...fromFinding(checkExpiry(valid_to))}
+        />
+      )}
+      {valid_from && <Row lbl="Renewed" val={valid_from} />}
+      {days > 0 && <Row lbl="Lifetime" val={`${days} days`} />}
+      {serialNumber && <Row lbl="Serial Num" val={serialNumber} />}
+      {fingerprint && <Row lbl="Fingerprint" val={fingerprint} />}
       {altNames.length > 0 && (
         <ExpandableRow
           lbl="Alternative Names"
-          val={String(altNames.length)}
-          rowList={altNames.map((name: string) => ({ lbl: name, val: '' }))}
+          val={altNames.length}
+          rowList={altNames.map((name: string) => ({ lbl: name }))}
         />
       )}
       {sslCert.chain?.length > 0 && <ListRow title="Certificate Chain" list={sslCert.chain} />}

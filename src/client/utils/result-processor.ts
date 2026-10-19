@@ -60,6 +60,15 @@ export const hasData = (r: any): boolean => {
   return true;
 };
 
+// The path of a URL, or the text as it is when it isn't a URL
+export const getPath = (url: string): string => {
+  try {
+    return new URL(url).pathname;
+  } catch {
+    return url;
+  }
+};
+
 export const getServerInfo = (response: any): ServerInfo | null => {
   const info: ServerInfo = {
     org: response.org,

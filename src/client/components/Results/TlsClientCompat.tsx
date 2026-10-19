@@ -41,7 +41,7 @@ const successFields = (sim: any) =>
 const failureFields = (sim: any) => {
   const reason =
     sim.alertDescription || sim.errorMessage || 'This client cannot complete the TLS handshake';
-  return [{ lbl: '', val: '', plaintext: reason }];
+  return [{ plaintext: reason }];
 };
 
 const TlsClientCompatCard = (props: {
@@ -59,7 +59,11 @@ const TlsClientCompatCard = (props: {
           <ExpandableRow
             key={`tls-cli-${i}`}
             lbl={buildTitle(sim.client || {})}
-            val={ok ? '✅' : '❌'}
+            val={ok}
+            yes="Connects"
+            no="Fails"
+            status={ok ? 'pass' : 'warning'}
+            term="client-compatibility"
             rowList={ok ? successFields(sim) : failureFields(sim)}
           />
         );

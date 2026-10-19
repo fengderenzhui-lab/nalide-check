@@ -1,22 +1,20 @@
-import colors from 'client/styles/colors';
-import { Card } from 'client/components/Form/Card';
+import { Card, Note } from 'client/components/Form/Card';
 import Row, { ExpandableRow } from 'client/components/Form/Row';
-
-const cardStyles = `
-  small {
-    display: block;
-    margin-top: 0.75rem;
-    opacity: 0.5;
-    a { color: ${colors.primary} }
-  }
-`;
+import { fromFinding } from 'client/components/misc/Icon';
+import checkBreaches from 'client/analysis/rules/breaches';
 
 const BreachesCard = (props: { data: any; title: string; actionButtons: any }): JSX.Element => {
   const { domain, breaches = [] } = props.data;
+  const [result] = checkBreaches(props.data);
   return (
-    <Card heading={props.title} actionButtons={props.actionButtons} styles={cardStyles}>
+    <Card heading={props.title} actionButtons={props.actionButtons}>
       <Row lbl="Domain" val={domain} />
-      <Row lbl="Breaches" val={breaches.length ? `❌ ${breaches.length}` : '✅ None'} />
+      <Row
+        lbl="Breaches"
+        val={breaches.length || 'None'}
+        term="data-breach"
+        {...fromFinding(result)}
+      />
       {breaches.map((breach: any) => (
         <ExpandableRow
           key={breach.name}
@@ -25,18 +23,18 @@ const BreachesCard = (props: { data: any; title: string; actionButtons: any }): 
           rowList={[
             { lbl: 'Breach Date', val: breach.date },
             { lbl: 'Site', val: breach.domain },
-            { lbl: 'Verified', val: breach.verified },
-            { lbl: 'Data Exposed', val: '', listResults: breach.exposed },
-            { lbl: 'Details', val: '', plaintext: breach.description },
+            { lbl: 'Verified', val: breach.verified ? 'Yes' : 'No' },
+            { lbl: 'Data Exposed', listResults: breach.exposed },
+            { lbl: 'Details', plaintext: breach.description },
           ]}
         />
       ))}
-      <small>
+      <Note>
         Source:{' '}
         <a href="https://haveibeenpwned.com/" target="_blank" rel="noreferrer">
           Have I Been Pwned
         </a>
-      </small>
+      </Note>
     </Card>
   );
 };
