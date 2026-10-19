@@ -14,36 +14,46 @@ const openPorts = [
   <div class="plot">
     <p class="caption">tcp/0–65535 on 93.184.215.14</p>
     <div class="labels" style={`--rows: ${openPorts.length}`}>
-      {
-        openPorts.map(({ port, service, banner, exposed }) => (
-          <div class:list={['open-port', { exposed }]} data-port={port}>
-            <span class="leader" />
-            <p class="label">
-              <b>{port}</b>
-              <span>{service}</span>
-              <em>{banner}</em>
-            </p>
-          </div>
-        ))
-      }
+      {openPorts.map(({ port, service, banner, exposed }) => (
+        <div class:list={['open-port', { exposed }]} data-port={port}>
+          <span class="leader" />
+          <p class="label">
+            <b>{port}</b>
+            <span>{service}</span>
+            <em>{banner}</em>
+          </p>
+        </div>
+      ))}
     </div>
     <div class="field">
       <canvas></canvas>
-      <span class="region" style="--x: 0; --y: 33">well-known 0–1023</span>
-      <span class="region" style="--x: 129; --y: 129">dynamic 49152–65535</span>
-      <span class="region" style="--x: 1; --y: 236">registered 1024–49151</span>
-      <p class="tip"><b></b> <span></span> <em></em></p>
+      <span class="region" style="--x: 0; --y: 33">
+        well-known 0–1023
+      </span>
+      <span class="region" style="--x: 129; --y: 129">
+        dynamic 49152–65535
+      </span>
+      <span class="region" style="--x: 1; --y: 236">
+        registered 1024–49151
+      </span>
+      <p class="tip">
+        <b></b> <span></span> <em></em>
+      </p>
     </div>
   </div>
 
   <dl class="readout">
     <div class="count">
       <dt>Ports scanned</dt>
-      <dd><b data-out="scanned">0</b> <span>of 65,536</span></dd>
+      <dd>
+        <b data-out="scanned">0</b> <span>of 65,536</span>
+      </dd>
     </div>
     <div>
       <dt>Open</dt>
-      <dd class="is-open" data-out="open">0</dd>
+      <dd class="is-open" data-out="open">
+        0
+      </dd>
     </div>
     <div>
       <dt>Filtered</dt>
@@ -55,7 +65,12 @@ const openPorts = [
     </div>
     <div>
       <dt>Probing</dt>
-      <dd><span data-out="port">0</span> <span class="muted" data-out="range">well-known</span></dd>
+      <dd>
+        <span data-out="port">0</span>{' '}
+        <span class="muted" data-out="range">
+          well-known
+        </span>
+      </dd>
     </div>
     <div>
       <dt>Elapsed</dt>

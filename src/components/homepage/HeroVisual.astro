@@ -7,10 +7,18 @@ import PacketBytes from './visuals/PacketBytes.astro';
 
 <!-- All visuals start hidden, then the script below shows just one -->
 <div class="hero-visual">
-  <div data-visual="layer-stack" hidden><LayerStack /></div>
-  <div data-visual="tech-drawing" hidden><TechDrawing /></div>
-  <div data-visual="port-field" hidden><PortField /></div>
-  <div data-visual="packet-bytes" hidden><PacketBytes /></div>
+  <div data-visual="layer-stack" hidden>
+    <LayerStack />
+  </div>
+  <div data-visual="tech-drawing" hidden>
+    <TechDrawing />
+  </div>
+  <div data-visual="port-field" hidden>
+    <PortField />
+  </div>
+  <div data-visual="packet-bytes" hidden>
+    <PacketBytes />
+  </div>
 </div>
 
 <script is:inline data-astro-rerun>

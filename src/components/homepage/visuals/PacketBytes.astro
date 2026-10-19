@@ -266,65 +266,69 @@ const byteRows = Math.max(...packets.map(({ rows }) => rows.length));
   <div class="filter">dns || tcp.port == 443</div>
   <div class="list">
     <div class="packet head">
-      <span>No.</span><span>Time</span><span>Source</span><span>Destination</span>
-      <span>Protocol</span><span>Info</span>
+      <span>No.</span>
+      <span>Time</span>
+      <span>Source</span>
+      <span>Destination</span>
+      <span>Protocol</span>
+      <span>Info</span>
     </div>
     <div class="list-window">
       <div class="list-rows">
-        {
-          capture.map((cells) => (
-            <div class="packet" data-no={cells[0]}>
-              {cells.map((cell) => (
-                <span>{cell}</span>
-              ))}
-            </div>
-          ))
-        }
+        {capture.map((cells) => (
+          <div class="packet" data-no={cells[0]}>
+            {cells.map((cell) => (
+              <span>{cell}</span>
+            ))}
+          </div>
+        ))}
       </div>
     </div>
   </div>
-  {
-    packets.map(({ no, lines, rows }, index) => (
-      <div class="decode" data-no={no} hidden={index > 0}>
-        <div class="tree">
-          <div class="tree-lines" style={`--count: ${lines.length}`}>
-            {lines.map(({ depth, text, open, start, len, filter, walk, dwell }) => (
-              <div
-                class="line"
-                style={`--depth: ${depth}`}
-                data-start={start}
-                data-len={len}
-                data-name={text.split(/[:,]/)[0]}
-                data-filter={filter}
-                data-dwell={walk ? (dwell ?? STEP) : undefined}
-              >
-                <i>{open === undefined ? '' : open ? '▾' : '▸'}</i>
-                <span>{text}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-        <div class="bytes">
-          {rows.map((row, i) => (
-            <div class="row">
-              <span class="offset">{(i * 16).toString(16).padStart(4, '0')}</span>
-              <span class="hex">
-                {row.map(({ hex, field }) => (
-                  <b data-field={field}>{hex}</b>
-                ))}
-              </span>
-              <span class="ascii">
-                {row.map(({ char, field }) => (
-                  <b data-field={field}>{char}</b>
-                ))}
-              </span>
+  {packets.map(({ no, lines, rows }, index) => (
+    <div class="decode" data-no={no} hidden={index > 0}>
+      <div class="tree">
+        <div class="tree-lines" style={`--count: ${lines.length}`}>
+          {lines.map(({ depth, text, open, start, len, filter, walk, dwell }) => (
+            <div
+              class="line"
+              style={`--depth: ${depth}`}
+              data-start={start}
+              data-len={len}
+              data-name={text.split(/[:,]/)[0]}
+              data-filter={filter}
+              data-dwell={walk ? (dwell ?? STEP) : undefined}
+            >
+              <i>{open === undefined ? '' : open ? '▾' : '▸'}</i>
+              <span>{text}</span>
             </div>
           ))}
         </div>
       </div>
-    ))
-  }
-  <div class="status"><span></span><code></code><span></span></div>
+      <div class="bytes">
+        {rows.map((row, i) => (
+          <div class="row">
+            <span class="offset">{(i * 16).toString(16).padStart(4, '0')}</span>
+            <span class="hex">
+              {row.map(({ hex, field }) => (
+                <b data-field={field}>{hex}</b>
+              ))}
+            </span>
+            <span class="ascii">
+              {row.map(({ char, field }) => (
+                <b data-field={field}>{char}</b>
+              ))}
+            </span>
+          </div>
+        ))}
+      </div>
+    </div>
+  ))}
+  <div class="status">
+    <span></span>
+    <code></code>
+    <span></span>
+  </div>
 </div>
 
 <script>

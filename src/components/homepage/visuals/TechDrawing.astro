@@ -317,7 +317,9 @@ cell(TX + 8, 786, 'Drawing no.', 'WC-93184-215', 'dwg');
         <circle class="hatch-dot" cx="4.5" cy="4.5" r="0.8"></circle>
       </pattern>
     </defs>
-    {shapes.map(({ tag: Tag, text, ...attrs }) => <Tag {...attrs}>{text}</Tag>)}
+    {shapes.map(({ tag: Tag, text, ...attrs }) => (
+      <Tag {...attrs}>{text}</Tag>
+    ))}
   </svg>
 </div>
 
