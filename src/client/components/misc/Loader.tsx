@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import { StyledCard } from 'client/components/Form/Card';
 import type { LoadingJob } from 'client/components/misc/ProgressBar';
 import colors from 'client/styles/colors';
+import { strings } from 'client/i18n';
 
 const CHIP = { width: 140, height: 120 };
 
@@ -179,6 +180,7 @@ const Chip = (props: { x: number; y: number; done: number; total: number }): JSX
   const left = props.x - CHIP.width / 2;
   const top = props.y - CHIP.height / 2;
   const pins = Array.from({ length: 8 }, (_, i) => left + 12 + i * 16);
+  const t = strings();
   return (
     <g>
       {pins.map((x) => (
@@ -190,10 +192,10 @@ const Chip = (props: { x: number; y: number; done: number; total: number }): JSX
       <rect className="chip" x={left} y={top} width={CHIP.width} height={CHIP.height} rx={6} />
       <circle className="via" cx={left + 14} cy={top + 14} r={4} />
       <text className="chip-label" x={props.x} y={props.y - 8} textAnchor="middle">
-        Crunching data
+        {t.loader.crunching}
       </text>
       <text className="chip-count" x={props.x} y={props.y + 14} textAnchor="middle">
-        {props.done} / {props.total} checks
+        {t.loader.checks(props.done, props.total)}
       </text>
     </g>
   );
@@ -201,6 +203,7 @@ const Chip = (props: { x: number; y: number; done: number; total: number }): JSX
 
 const Loader = (props: { show: boolean; jobs: LoadingJob[] }): JSX.Element => {
   const { show, jobs } = props;
+  const t = strings();
   const boardRef = useRef<SVGSVGElement>(null);
   const [size, setSize] = useState({ width: 0, height: 0 });
 
@@ -221,8 +224,8 @@ const Loader = (props: { show: boolean; jobs: LoadingJob[] }): JSX.Element => {
   const traces = width ? routeTraces(jobs, width, height) : [];
 
   return (
-    <LoaderContainer className={show ? '' : 'finished'}>
-      <svg ref={boardRef} role="img" aria-label={`Crunching data, ${done} of ${jobs.length} done`}>
+    <LoaderContainer className={show ? '' : 'finished'} lang={t.lang}>
+      <svg ref={boardRef} role="img" aria-label={t.loader.status(done, jobs.length)}>
         {traces.map(({ job, path, pad, bend, label }, i) => (
           <g key={job.id} className={`trace ${job.state}`}>
             <path className="wire" d={path} />
@@ -243,9 +246,9 @@ const Loader = (props: { show: boolean; jobs: LoadingJob[] }): JSX.Element => {
         {width > 0 && <Chip x={width / 2} y={height / 2} done={done} total={jobs.length} />}
       </svg>
       <p>
-        It may take up to a minute for all jobs to complete
+        {t.loader.wait}
         <br />
-        You can view preliminary results as they come in below
+        {t.loader.preview}
       </p>
     </LoaderContainer>
   );

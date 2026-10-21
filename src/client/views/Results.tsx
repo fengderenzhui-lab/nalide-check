@@ -23,6 +23,7 @@ import { determineAddressType, type AddressType } from 'client/utils/address-typ
 import { hasData } from 'client/utils/result-processor';
 import keys from 'client/utils/get-keys';
 import { getSetting } from 'client/utils/settings';
+import { strings } from 'client/i18n';
 import useJobs from 'client/hooks/useJobs';
 import { isCategory } from '@/data/categories';
 import { checks, isCheck } from '@/data/checks';
@@ -55,14 +56,18 @@ const ResultsContent = styled.section`
   }
 `;
 
-const makeActionButtons = (title: string, refresh: () => void, showInfo: () => void): ReactNode => (
-  <ActionButtons
-    actions={[
-      { label: `Info about ${title}`, onClick: showInfo, icon: 'ⓘ' },
-      { label: `Re-fetch ${title} data`, onClick: refresh, icon: '↻' },
-    ]}
-  />
-);
+const makeActionButtons = (title: string, refresh: () => void, showInfo: () => void): ReactNode => {
+  const t = strings();
+  return (
+    <ActionButtons
+      lang={t.lang}
+      actions={[
+        { label: t.card.info(title), onClick: showInfo, icon: 'ⓘ' },
+        { label: t.card.refresh(title), onClick: refresh, icon: '↻' },
+      ]}
+    />
+  );
+};
 
 const Results = (props: { address?: string }): JSX.Element => {
   const { urlToScan, tool = '' } = useParams();
@@ -70,6 +75,7 @@ const Results = (props: { address?: string }): JSX.Element => {
   const addressType: AddressType = useMemo(() => determineAddressType(address), [address]);
   const [modalOpen, setModalOpen] = useState(false);
   const [modalContent, setModalContent] = useState<ReactNode>(<></>);
+  const t = strings();
 
   // Optional category or check in the path narrows the scan, unknown values fall back to everything
   const category = isCategory(tool) ? tool : undefined;
@@ -83,18 +89,18 @@ const Results = (props: { address?: string }): JSX.Element => {
   // Shape useJobs state for the existing ProgressBar contract
   const loadingJobs: LoadingJob[] = useMemo(
     () =>
-      activeCards.map(({ card: { id, title } }) => {
+      activeCards.map(({ card: { id } }) => {
         const e = jobsState[id] || { state: 'loading' as LoadingState };
         return {
           id,
-          name: title,
+          name: t.checks[id],
           state: e.state,
           error: e.error,
           timeTaken: e.timeTaken,
           retry: () => retry(id),
         };
       }),
-    [jobsState, retry, activeCards],
+    [jobsState, retry, activeCards, t],
   );
 
   // Expose successful job results on window.webCheck for debugging
@@ -127,7 +133,7 @@ const Results = (props: { address?: string }): JSX.Element => {
     const raw = entry?.raw;
     let data = raw && card.pick ? card.pick(raw) : raw;
     if (!hasData(data) && card.fallback) data = card.fallback(jobsState);
-    return { jobId, card, data, entry };
+    return { jobId, card, data, entry, title: t.checks[card.id] };
   });
 
   const cardsToShow = renderable.filter(({ data, entry }) => hasData(data) && !entry?.error);
@@ -189,15 +195,15 @@ const Results = (props: { address?: string }): JSX.Element => {
           <AdvisoryPanel findings={findings} onJumpTo={jumpToCard} />
           <ResultsContent>
             <ResultsMasonryGrid minColWidth={336}>
-              {cardsToShow.map(({ card, data }) => (
+              {cardsToShow.map(({ card, data, title }) => (
                 <div id={`card-${card.id}`} key={`eb-${card.id}`}>
-                  <ErrorBoundary title={card.title}>
+                  <ErrorBoundary title={title}>
                     <card.Component
                       key={card.id}
                       data={data}
-                      title={card.title}
+                      title={title}
                       actionButtons={makeActionButtons(
-                        card.title,
+                        title,
                         () => retry(card.id),
                         () => showInfo(card.id),
                       )}
@@ -208,13 +214,7 @@ const Results = (props: { address?: string }): JSX.Element => {
             </ResultsMasonryGrid>
           </ResultsContent>
           {!loading && (
-            <ViewRaw
-              everything={renderable.map((r) => ({
-                id: r.card.id,
-                title: r.card.title,
-                result: r.data,
-              }))}
-            />
+            <ViewRaw everything={renderable.map((r) => ({ id: r.card.id, result: r.data }))} />
           )}
         </>
       )}

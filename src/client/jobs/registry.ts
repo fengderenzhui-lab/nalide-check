@@ -130,7 +130,6 @@ const card = (
   extra: Partial<CardSpec> = {},
 ): CardSpec => ({
   id,
-  title: checks[id].title,
   categories: checks[id].categories,
   Component,
   ...extra,

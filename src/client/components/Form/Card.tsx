@@ -4,6 +4,7 @@ import { type ReactNode } from 'react';
 import ErrorBoundary from 'client/components/misc/ErrorBoundary';
 import Heading from 'client/components/Form/Heading';
 import colors from 'client/styles/colors';
+import { strings } from 'client/i18n';
 
 export const StyledCard = styled.section<{ styles?: string }>`
   background: ${colors.backgroundRaised};
@@ -36,13 +37,15 @@ interface CardProps {
   heading?: string;
   styles?: string;
   actionButtons?: ReactNode | undefined;
+  lang?: string;
 }
 
+// Headings are always translated, the rest is English unless given a lang
 export const Card = (props: CardProps): JSX.Element => {
-  const { children, heading, styles, actionButtons } = props;
+  const { children, heading, styles, actionButtons, lang } = props;
   return (
     <ErrorBoundary title={heading}>
-      <StyledCard styles={styles}>
+      <StyledCard styles={styles} lang={lang}>
         {actionButtons && actionButtons}
         {heading && (
           <Heading
@@ -50,6 +53,7 @@ export const Card = (props: CardProps): JSX.Element => {
             as="h3"
             align="left"
             color={colors.primaryIncreasedContrast}
+            lang={strings().lang}
           >
             {heading}
           </Heading>

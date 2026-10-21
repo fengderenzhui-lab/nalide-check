@@ -2,6 +2,7 @@ import styled from '@emotion/styled';
 import colors from 'client/styles/colors';
 import { StyledCard } from 'client/components/Form/Card';
 import Heading from 'client/components/Form/Heading';
+import { strings } from 'client/i18n';
 
 const Wrapper = styled(StyledCard)`
   margin: 0 auto;
@@ -42,55 +43,6 @@ const Wrapper = styled(StyledCard)`
 
 type Kind = 'unreachable' | 'invalid' | 'api-down' | 'disabled' | 'blocked';
 
-const VARIANT: Record<Kind, { title: string; description: string; reasons: string[] }> = {
-  unreachable: {
-    title: 'Cannot Reach This Site',
-    description: 'We could not resolve an IP address for this host, so checks cannot run',
-    reasons: [
-      'The domain might be misspelled or no longer registered',
-      'The website may be offline or temporarily unreachable',
-      'A DNS resolution issue may be affecting the lookup',
-      'A firewall or geo-block may be preventing access',
-    ],
-  },
-  invalid: {
-    title: 'Invalid Input',
-    description: 'That does not look like a valid URL or IP address, so checks cannot run',
-    reasons: [
-      'Enter a domain (example.com) or an IPv4 / IPv6 address',
-      'Check for typos or stray characters in the input',
-      'Avoid spaces and unsupported symbols in the address',
-    ],
-  },
-  'api-down': {
-    title: 'Service Unavailable',
-    description: 'Most checks failed because the Web-Check API could not be reached',
-    reasons: [
-      'The API may be down, restarting or rate-limited',
-      'A self-hosted instance might be misconfigured or offline',
-      'A network or firewall issue could be blocking the API',
-    ],
-  },
-  blocked: {
-    title: 'Scanning Not Permitted',
-    description: 'Every check was skipped, as this instance does not allow scanning this host',
-    reasons: [
-      'The administrator may have blocked this domain or IP range',
-      'The instance may be configured to not run these checks',
-      'You can still scan this host from your own instance of Web-Check',
-    ],
-  },
-  disabled: {
-    title: 'Web-Check is Paused',
-    description: 'This instance has been temporarily disabled, so checks cannot run',
-    reasons: [
-      'The public instance may be paused to manage running costs',
-      'A self-hosted instance may be in maintenance mode',
-      'You can run your own copy from the open-source repo on GitHub',
-    ],
-  },
-};
-
 interface Props {
   address: string;
   error?: string;
@@ -99,15 +51,16 @@ interface Props {
 
 // Surface a friendly explanation when input is invalid or the host is unreachable
 const NoResults = ({ address, error, kind = 'unreachable' }: Props): JSX.Element => {
-  const { title, description, reasons } = VARIANT[kind];
+  const t = strings();
+  const { title, description, reasons } = t.noResults[kind];
   return (
-    <Wrapper role="alert">
+    <Wrapper role="alert" lang={t.lang}>
       <Heading as="h2" align="left" color={colors.danger}>
         {title}
       </Heading>
       <p>{description}</p>
       <code className="target">{address}</code>
-      <p>Possible reasons:</p>
+      <p>{t.noResults.possibleReasons}</p>
       <ul className="reasons">
         {reasons.map((r) => (
           <li key={r}>{r}</li>
@@ -115,7 +68,8 @@ const NoResults = ({ address, error, kind = 'unreachable' }: Props): JSX.Element
       </ul>
       {error && (
         <span className="detail">
-          {kind === 'blocked' ? 'Reason' : 'Lookup error'}: {error}
+          {kind === 'blocked' ? t.noResults.reason : t.noResults.lookupError}{' '}
+          <span lang="en">{error}</span>
         </span>
       )}
     </Wrapper>

@@ -38,11 +38,11 @@ const actionButtonStyles = `
   }
 `;
 
-const ActionButtons = (props: { actions: any }): JSX.Element => {
+const ActionButtons = (props: { actions: any; lang?: string }): JSX.Element => {
   const actions = props.actions;
   if (!actions) return <></>;
   return (
-    <ActionButtonContainer>
+    <ActionButtonContainer lang={props.lang}>
       {actions.map((action: Action, index: number) => (
         <Button
           key={`action-${index}`}

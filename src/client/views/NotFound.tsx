@@ -4,6 +4,7 @@ import colors from 'client/styles/colors';
 import Heading from 'client/components/Form/Heading';
 import Button from 'client/components/Form/Button';
 import { StyledCard } from 'client/components/Form/Card';
+import { strings } from 'client/i18n';
 
 const AboutContainer = styled.div`
   width: var(--page-width);
@@ -39,23 +40,24 @@ const NotFoundInner = styled(StyledCard)`
 `;
 
 const NotFound = (): JSX.Element => {
+  const t = strings();
   return (
-    <AboutContainer>
+    <AboutContainer lang={t.lang}>
       <NotFoundInner>
         <Heading as="p" size="large" color={colors.primary}>
           404
         </Heading>
         <span className="im-drink">🥴</span>
         <Heading as="h3" size="large" color={colors.primary}>
-          Not Found
+          {t.errorPage.notFound}
         </Heading>
         <HeaderLinkContainer>
           <a href="/">
-            <Button>Back to Homepage</Button>
+            <Button>{t.errorPage.home}</Button>
           </a>
         </HeaderLinkContainer>
         <a target="_blank" rel="noreferrer" href="https://github.com/lissy93/web-check">
-          Report Issue
+          {t.errorPage.report}
         </a>
       </NotFoundInner>
     </AboutContainer>

@@ -5,6 +5,7 @@ import colors from 'client/styles/colors';
 import Heading from 'client/components/Form/Heading';
 import Button from 'client/components/Form/Button';
 import { StyledCard } from 'client/components/Form/Card';
+import { strings } from 'client/i18n';
 
 interface ErrorBoundaryState {
   hasError: boolean;
@@ -81,47 +82,45 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
 
   render() {
     if (this.state.hasError) {
+      const t = strings();
       return (
-        <ErrorPageContainer>
+        <ErrorPageContainer lang={t.lang}>
           <HeaderLinkContainer>
             <a href="/">
-              <Button>Go back Home</Button>
+              <Button>{t.errorPage.home}</Button>
             </a>
             <a target="_blank" rel="noreferrer" href="https://github.com/lissy93/web-check">
-              <Button>View on GitHub</Button>
+              <Button>{t.errorPage.github}</Button>
             </a>
           </HeaderLinkContainer>
           <ErrorInner>
             <Heading as="h1" size="medium" color={colors.primary}>
-              Something's gone wrong
+              {t.errorPage.heading}
             </Heading>
             <Heading as="h2" size="small" color={colors.textColor}>
-              An unexpected error occurred.
+              {t.errorPage.subheading}
             </Heading>
             <Heading as="h3" size="large" color={colors.textColor}>
               🤯
             </Heading>
             <ErrorDetails>
-              <p>
-                We're sorry this happened. Usually reloading the page will resolve this, but if it
-                doesn't, please raise a bug report.
-              </p>
+              <p>{t.errorPage.apology}</p>
               {this.state.errorMessage && (
                 <p>
-                  Below is the error message we received:
+                  {t.errorPage.message}
                   <br />
                   <br />
-                  <ErrorMessageText>{this.state.errorMessage}</ErrorMessageText>
+                  <ErrorMessageText lang="en">{this.state.errorMessage}</ErrorMessageText>
                 </p>
               )}
             </ErrorDetails>
-            <Button onClick={() => window.location.reload()}>Reload Page</Button>
+            <Button onClick={() => window.location.reload()}>{t.errorPage.reload}</Button>
             <a
               target="_blank"
               rel="noreferrer"
               href="https://github.com/lissy93/web-check/issues/choose"
             >
-              Report Issue
+              {t.errorPage.report}
             </a>
           </ErrorInner>
         </ErrorPageContainer>

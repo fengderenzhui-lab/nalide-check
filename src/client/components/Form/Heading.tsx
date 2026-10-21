@@ -11,6 +11,7 @@ interface HeadingProps {
   children: ReactNode;
   id?: string;
   className?: string;
+  lang?: string;
 }
 
 const StyledHeading = styled.h1<HeadingProps>`
@@ -59,15 +60,15 @@ const StyledHeading = styled.h1<HeadingProps>`
   ${(props) => (props.inline ? 'display: inline;' : '')}
 `;
 
-const makeAnchor = (title: string): string => {
-  return title
+// Keeps letters in any language, and leaves the id off if a title has none
+const makeAnchor = (title: string): string | undefined =>
+  title
     .toLowerCase()
-    .replace(/[^\w\s]|_/g, '')
-    .replace(/\s+/g, '-');
-};
+    .replace(/[^\p{L}\p{N}\s]/gu, '')
+    .replace(/\s+/g, '-') || undefined;
 
 const Heading = (props: HeadingProps): JSX.Element => {
-  const { children, as, size, align, color, inline, id, className } = props;
+  const { children, as, size, align, color, inline, id, className, lang } = props;
   return (
     <StyledHeading
       as={as}
@@ -76,6 +77,7 @@ const Heading = (props: HeadingProps): JSX.Element => {
       color={color}
       inline={inline}
       className={className}
+      lang={lang}
       id={id || (typeof children === 'string' ? makeAnchor(children) : undefined)}
     >
       {children}

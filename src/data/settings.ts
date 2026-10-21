@@ -21,6 +21,18 @@ export interface Section {
   settings: Setting[];
 }
 
+// The results page comes in these, each named in its own language
+export const languages = {
+  de: 'Deutsch',
+  en: 'English',
+  es: 'Español',
+  fr: 'Français',
+  pt: 'Português',
+  zh: '简体中文',
+};
+
+export type Language = keyof typeof languages;
+
 const localeNames = new Intl.DisplayNames(['en'], { type: 'language' });
 
 const locales = [
@@ -44,9 +56,13 @@ export const sections: Section[] = [
       {
         key: 'language',
         label: 'Language',
+        hint: 'Only scan results are translated, for now',
         control: 'select',
-        options: [{ value: 'en', label: 'English' }],
-        default: 'en',
+        options: [
+          { value: 'auto', label: 'Match browser' },
+          ...Object.entries(languages).map(([value, label]) => ({ value, label })),
+        ],
+        default: 'auto',
       },
       {
         key: 'locale',

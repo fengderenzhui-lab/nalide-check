@@ -13,7 +13,6 @@ export interface JobContext {
 
 export interface CardSpec {
   id: CheckId;
-  title: string;
   categories: CategoryId[];
   Component: ComponentType<any>;
   pick?: (raw: any) => any;

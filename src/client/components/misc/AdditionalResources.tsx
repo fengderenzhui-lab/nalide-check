@@ -2,6 +2,7 @@ import styled from '@emotion/styled';
 import colors from 'client/styles/colors';
 import { Card } from 'client/components/Form/Card';
 import type { CategoryId } from '@/data/categories';
+import { strings } from 'client/i18n';
 
 const ResourceListOuter = styled.ul`
   list-style: none;
@@ -329,7 +330,7 @@ const AdditionalResources = ({
     : resources;
   if (!shown.length) return null;
   return (
-    <Card heading="External Tools for Further Research" styles={CardStyles}>
+    <Card heading={strings().resources.heading} styles={CardStyles}>
       <ResourceListOuter>
         {shown.map((resource, index) => {
           return (

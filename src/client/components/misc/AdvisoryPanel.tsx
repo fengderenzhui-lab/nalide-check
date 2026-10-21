@@ -13,25 +13,20 @@ import Card from 'client/components/Form/Card';
 import Heading from 'client/components/Form/Heading';
 import Icon from 'client/components/misc/Icon';
 import { SEVERITIES, type Finding, type Severity } from 'client/analysis/types';
+import { strings } from 'client/i18n';
 
 interface SevMeta {
-  label: string;
   color: string;
   icon: IconDefinition;
   defaultOpen: boolean;
 }
 
 const META: Record<Severity, SevMeta> = {
-  critical: { label: 'Critical', color: colors.danger, icon: faCircleXmark, defaultOpen: true },
-  issue: { label: 'Issues', color: colors.error, icon: faCircleExclamation, defaultOpen: true },
-  warning: {
-    label: 'Warnings',
-    color: colors.warning,
-    icon: faTriangleExclamation,
-    defaultOpen: false,
-  },
-  info: { label: 'Informational', color: colors.info, icon: faCircleInfo, defaultOpen: false },
-  pass: { label: 'Passes', color: colors.success, icon: faCircleCheck, defaultOpen: false },
+  critical: { color: colors.danger, icon: faCircleXmark, defaultOpen: true },
+  issue: { color: colors.error, icon: faCircleExclamation, defaultOpen: true },
+  warning: { color: colors.warning, icon: faTriangleExclamation, defaultOpen: false },
+  info: { color: colors.info, icon: faCircleInfo, defaultOpen: false },
+  pass: { color: colors.success, icon: faCircleCheck, defaultOpen: false },
 };
 
 const Wrapper = styled(Card)`
@@ -120,6 +115,7 @@ interface Props {
 
 // Group findings by severity, render summary + collapsible sections, hide when empty
 const AdvisoryPanel = ({ findings, onJumpTo }: Props): ReactNode => {
+  const t = strings();
   const { grouped, visible } = useMemo(() => {
     const grouped: Record<Severity, Finding[]> = {
       critical: [],
@@ -135,12 +131,13 @@ const AdvisoryPanel = ({ findings, onJumpTo }: Props): ReactNode => {
   if (!findings.length) return null;
 
   return (
-    <Wrapper>
+    <Wrapper lang={t.lang}>
       <Heading as="h2" align="left" color={colors.primary}>
-        Advisory
+        {t.advisory.heading}
       </Heading>
       {visible.map((sev) => {
         const meta = META[sev];
+        const label = t.advisory.severity[sev];
         const items = grouped[sev];
         return (
           <details
@@ -150,16 +147,16 @@ const AdvisoryPanel = ({ findings, onJumpTo }: Props): ReactNode => {
             style={{ background: `color-mix(in srgb, ${meta.color} 5%, transparent)` }}
           >
             <summary style={{ color: meta.color }}>
-              {meta.label}
+              {label}
               <span className="count">({items.length})</span>
             </summary>
             <ul className="findings">
               {items.map((f, i) => (
                 <li key={`${f.cardId}-${i}`}>
                   <span className="glyph">
-                    <Icon icon={meta.icon} color={meta.color} label={meta.label} />
+                    <Icon icon={meta.icon} color={meta.color} label={label} />
                   </span>
-                  <span className="body">
+                  <span className="body" lang="en">
                     <button type="button" className="jump" onClick={() => onJumpTo(f.cardId)}>
                       {f.title}
                     </button>

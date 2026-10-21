@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import Card from 'client/components/Form/Card';
 import Heading from 'client/components/Form/Heading';
 import colors from 'client/styles/colors';
+import { strings } from 'client/i18n';
 
 interface Props {
   children: ReactNode;
@@ -36,19 +37,16 @@ class ErrorBoundary extends Component<Props, State> {
 
   public render() {
     if (this.state.hasError) {
+      const t = strings();
       return (
-        <Card>
+        <Card lang={t.lang}>
           {this.props.title && <Heading color={colors.primary}>{this.props.title}</Heading>}
-          <ErrorText>This component errored unexpectedly</ErrorText>
-          <p>
-            Usually this happens if the result from the server was not what was expected. Check the
-            logs for more info. If you continue to experience this issue, please raise a ticket on
-            the repository.
-          </p>
+          <ErrorText>{t.card.crashed}</ErrorText>
+          <p>{t.card.crashedHelp}</p>
           {this.state.errorMessage && (
             <details>
-              <summary>Error Details</summary>
-              <div>{this.state.errorMessage}</div>
+              <summary>{t.card.errorDetails}</summary>
+              <div lang="en">{this.state.errorMessage}</div>
             </details>
           )}
         </Card>

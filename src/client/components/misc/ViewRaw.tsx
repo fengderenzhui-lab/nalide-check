@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import colors from 'client/styles/colors';
 import { Card } from 'client/components/Form/Card';
 import Button from 'client/components/Form/Button';
+import { strings } from 'client/i18n';
 
 const CardStyles = `
 margin: 0 auto;
@@ -43,6 +44,7 @@ const StyledIframe = styled.iframe`
 const ViewRaw = (props: { everything: { id: string; result: any }[] }) => {
   const [resultUrl, setResultUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const t = strings();
 
   const makeResults = () => {
     const result: { [key: string]: any } = {};
@@ -65,7 +67,7 @@ const ViewRaw = (props: { everything: { id: string; result: any }[] }) => {
       }),
     });
     if (!response.ok) {
-      setError(`HTTP error! status: ${response.status}`);
+      setError(t.rawData.httpError(response.status));
     } else {
       setError(null);
     }
@@ -82,25 +84,22 @@ const ViewRaw = (props: { everything: { id: string; result: any }[] }) => {
     URL.revokeObjectURL(url);
   };
   return (
-    <Card heading="View / Download Raw Data" styles={CardStyles}>
+    <Card heading={t.rawData.heading} styles={CardStyles} lang={t.lang}>
       <div className="controls">
-        <Button onClick={handleDownload}>Download Results</Button>
-        <Button onClick={fetchResultsUrl}>{resultUrl ? 'Update Results' : 'View Results'}</Button>
-        {resultUrl && <Button onClick={() => setResultUrl('')}>Hide Results</Button>}
+        <Button onClick={handleDownload}>{t.rawData.download}</Button>
+        <Button onClick={fetchResultsUrl}>{resultUrl ? t.rawData.update : t.rawData.view}</Button>
+        {resultUrl && <Button onClick={() => setResultUrl('')}>{t.rawData.hide}</Button>}
       </div>
       {resultUrl && !error && (
         <>
-          <StyledIframe title="Results, via JSON Hero" src={resultUrl} />
+          <StyledIframe title={t.rawData.frameTitle} src={resultUrl} />
           <small>
-            Your results are available to view <a href={resultUrl}>here</a>.
+            <a href={resultUrl}>{t.rawData.open}</a>
           </small>
         </>
       )}
       {error && <p className="error">{error}</p>}
-      <small>
-        These are the raw results generated from your URL, and in JSON format. You can import these
-        into your own program, for further analysis.
-      </small>
+      <small>{t.rawData.about}</small>
     </Card>
   );
 };
