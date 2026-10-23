@@ -364,8 +364,8 @@ const AdditionalResources = ({
         <br />
         At the time of listing, all of the above were available and free to use - if this changes,
         please report it via GitHub (
-        <a target="_blank" rel="noreferrer" href="https://github.com/fengderenzhui-lab/web-check">
-          fengderenzhui-lab/web-check
+        <a target="_blank" rel="noreferrer" href="https://github.com/fengderenzhui-lab/nalide-check">
+          fengderenzhui-lab/nalide-check
         </a>
         ).
       </Note>

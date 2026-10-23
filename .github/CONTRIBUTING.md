@@ -10,13 +10,13 @@ Hey! Thanks for wanting to help out with NALIDE Check.
 You'll need [Node](https://nodejs.org/) 22.22.3+ or 24.16+, [yarn](https://yarnpkg.com/) and git. Chromium and `traceroute` are optional, since the checks that need them just skip without.
 
 ```bash
-git clone git@github.com:fengderenzhui-lab/web-check.git
+git clone git@github.com:fengderenzhui-lab/nalide-check.git
 cd web-check
 yarn
 yarn dev
 ```
 
-This starts the API on port 3001 and the frontend on 4321. Env vars are all optional, see [`.env.sample`](https://github.com/fengderenzhui-lab/web-check/blob/master/.env.sample).
+This starts the API on port 3001 and the frontend on 4321. Env vars are all optional, see [`.env.sample`](https://github.com/fengderenzhui-lab/nalide-check/blob/master/.env.sample).
 
 ## Adding a check
 
@@ -31,10 +31,10 @@ If it needs an API key, skip cleanly when the key is missing (see `requireEnv`),
 
 ## Bugs and security issues
 
-Raise bugs as an [issue](https://github.com/fengderenzhui-lab/web-check/issues/new/choose), with steps to reproduce and how you're running NALIDE Check.
+Raise bugs as an [issue](https://github.com/fengderenzhui-lab/nalide-check/issues/new/choose), with steps to reproduce and how you're running NALIDE Check.
 Security issues shouldn't be public, see [SECURITY.md](SECURITY.md) for how to report them.
 
 ## Code of conduct
 
 Be kind and constructive. We follow the [Contributor Covenant](https://www.contributor-covenant.org/version/2/1/code_of_conduct/).
-By contributing, you agree that your work is licensed under the project's [MIT license](https://github.com/fengderenzhui-lab/web-check/blob/master/LICENSE).
+By contributing, you agree that your work is licensed under the project's [MIT license](https://github.com/fengderenzhui-lab/nalide-check/blob/master/LICENSE).

@@ -41,7 +41,7 @@ export const supportUs = [
     'fork, modify and distribute the code in both private and commercial settings.',
   'NALIDE Check is maintained as part of the NALIDE ecosystem. If you find it useful, the ' +
     "best way to help is to report issues or suggest improvements on the " +
-    "<a href='https://github.com/fengderenzhui-lab/web-check'>GitHub repo</a>.",
+    "<a href='https://github.com/fengderenzhui-lab/nalide-check'>GitHub repo</a>.",
 ];
 
 export const privacy = [

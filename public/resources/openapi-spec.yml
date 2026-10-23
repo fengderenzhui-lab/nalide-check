@@ -2,20 +2,20 @@ openapi: 3.0.0
 info:
   title: NALIDE Check
   description: >
-    **API documentation for the [NALIDE Check](https://github.com/fengderenzhui-lab/web-check) backend endpoints.**<br>
+    **API documentation for the [NALIDE Check](https://github.com/fengderenzhui-lab/nalide-check) backend endpoints.**<br>
     _NALIDE Check gives you x-ray vision, revealing the configration and inner workings of any website._
     <br><br>
     [![Website - check.nalide.com](https://img.shields.io/badge/Website-check.nalide.com-9fef00?style=flat&logo=googlecloudstorage&logoColor=white&labelColor=1c1d28)](https://check.nalide.com/)
-    [![GitHub - NALIDE Check](https://img.shields.io/badge/GitHub-NALIDE-Check-a832fc?style=flat&logo=github&logoColor=white&labelColor=1c1d28)](https://github.com/fengderenzhui-lab/web-check)
+    [![GitHub - NALIDE Check](https://img.shields.io/badge/GitHub-NALIDE-Check-a832fc?style=flat&logo=github&logoColor=white&labelColor=1c1d28)](https://github.com/fengderenzhui-lab/nalide-check)
 
   version: 1.0.0
   license:
     name: 'License: MIT'
-    url: https://github.com/fengderenzhui-lab/web-check/blob/master/LICENSE
+    url: https://github.com/fengderenzhui-lab/nalide-check/blob/master/LICENSE
   termsOfService: https://check.nalide.com/about#terms-info
 externalDocs:
   description: 'Source: GitHub'
-  url: https://github.com/fengderenzhui-lab/web-check
+  url: https://github.com/fengderenzhui-lab/nalide-check
 servers:
   - url: http://localhost:3001/api
     description: Local (Development)

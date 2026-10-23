@@ -6,7 +6,7 @@ Thanks for helping keep NALIDE Check and the people who use it safe.
 
 Please report it privately, either:
 
-- Open a [security advisory](https://github.com/fengderenzhui-lab/web-check/security/advisories/new) here on GitHub
+- Open a [security advisory](https://github.com/fengderenzhui-lab/nalide-check/security/advisories/new) here on GitHub
 - Or email `contact@nalide.com`
 
 > [!IMPORTANT]

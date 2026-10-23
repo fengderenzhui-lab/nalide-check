@@ -18,7 +18,7 @@ services:
     plan: standard
     region: oregon
     image:
-      url: ghcr.io/fengderenzhui-lab/web-check:latest
+      url: ghcr.io/fengderenzhui-lab/nalide-check:latest
     healthCheckPath: /healthz
     autoDeployTrigger: off
     envVars:

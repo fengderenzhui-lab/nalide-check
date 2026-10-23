@@ -20,7 +20,7 @@ Give it a URL, and NALIDE Check gathers everything it can find in the open about
 With Docker Compose (builds from this repository):
 
 ```bash
-git clone https://github.com/fengderenzhui-lab/web-check.git
+git clone https://github.com/fengderenzhui-lab/nalide-check.git
 cd web-check
 docker compose up -d
 ```
