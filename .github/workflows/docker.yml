@@ -39,7 +39,7 @@ permissions:
 
 env:
   GH_IMAGE: ghcr.io/${{ github.repository }}
-  DH_IMAGE: docker.io/${{ vars.DOCKER_REPO || 'lissy93/web-check' }}
+  DH_IMAGE: docker.io/${{ vars.DOCKER_REPO || 'fengderenzhui-lab/web-check' }}
 
 jobs:
   prepare:

@@ -236,7 +236,7 @@ jobs:
 
             const prNumber = context.payload.pull_request.number;
             const prAuthor = context.payload.pull_request.user?.login;
-            const creditAuthor = prAuthor && prAuthor.toLowerCase() !== 'lissy93';
+            const creditAuthor = prAuthor && prAuthor.toLowerCase() !== 'fengderenzhui-lab';
             const marker = `released-${version}`;
             for (const num of issues) {
               const issue_number = parseInt(num, 10);

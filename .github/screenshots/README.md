@@ -1,1 +1,3 @@
-![Screenshot](https://raw.githubusercontent.com/Lissy93/web-check/HEAD/.github/screenshots/web-check-screenshot3.png)
+# Screenshots
+
+See the live instance at [check.nalide.com](https://check.nalide.com).

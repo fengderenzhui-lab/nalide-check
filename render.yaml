@@ -2,9 +2,9 @@
 #
 # Web Check on Render — Blueprint deploy
 # Upstream: https://github.com/Lissy93/web-check
-# Image: https://hub.docker.com/r/lissy93/web-check
+# Image: built from this repository
 #
-# Pattern: image-wrapper (official lissy93/web-check image with Chromium).
+# Pattern: image-wrapper (image built from this repo, with Chromium).
 # Optional OSINT API keys: add in Dashboard after deploy (see .env.sample). Do not
 # declare them as sync:false here or Apply will prompt for every key.
 
@@ -18,7 +18,7 @@ services:
     plan: standard
     region: oregon
     image:
-      url: docker.io/lissy93/web-check:latest
+      url: ghcr.io/fengderenzhui-lab/web-check:latest
     healthCheckPath: /healthz
     autoDeployTrigger: off
     envVars:

@@ -9,8 +9,6 @@ updates:
     open-pull-requests-limit: 5
     labels:
       - 'Dependencies'
-    assignees:
-      - lissy93
     versioning-strategy: increase
     groups:
       browser:
@@ -49,8 +47,6 @@ updates:
       interval: monthly
     labels:
       - 'Dependencies'
-    assignees:
-      - lissy93
     groups:
       github-actions:
         patterns:
