@@ -1,3 +1,5 @@
+**English** | [简体中文](./README.zh-CN.md)
+
 # NALIDE Check
 
 **All-in-one website inspection and OSINT tool — X-ray vision for any website.**

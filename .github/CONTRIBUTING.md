@@ -1,3 +1,5 @@
+English | [简体中文](./CONTRIBUTING.zh-CN.md)
+
 # Contributing
 
 Hey! Thanks for wanting to help out with NALIDE Check.
@@ -11,7 +13,7 @@ You'll need [Node](https://nodejs.org/) 22.22.3+ or 24.16+, [yarn](https://yarnp
 
 ```bash
 git clone git@github.com:fengderenzhui-lab/nalide-check.git
-cd web-check
+cd nalide-check
 yarn
 yarn dev
 ```

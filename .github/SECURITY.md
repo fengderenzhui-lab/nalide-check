@@ -1,3 +1,5 @@
+English | [简体中文](./SECURITY.zh-CN.md)
+
 # Security policy
 
 Thanks for helping keep NALIDE Check and the people who use it safe.
