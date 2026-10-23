@@ -2,7 +2,7 @@
   "name": "web-check",
   "type": "module",
   "version": "2.3.8",
-  "homepage": "https://web-check.xyz",
+  "homepage": "https://check.nalide.com",
   "engines": {
     "node": "^22.22.3 || ^24.16.0 || >=26.3.0"
   },

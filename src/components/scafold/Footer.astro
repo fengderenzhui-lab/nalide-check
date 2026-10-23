@@ -9,17 +9,17 @@ interface Props {
 
 const { miniView = false } = Astro.props;
 
-const repo = 'github.com/lissy93/web-check';
+const repo = 'github.com/fengderenzhui-lab/web-check';
 const github = `https://${repo}`;
 
 const licenseText = 'MIT';
 const licenseLink = `${github}/blob/master/LICENSE`;
 
 const aboutLink = '/about';
-const projectName = 'Web Check';
+const projectName = 'NALIDE Check';
 
-const authorName = 'Alicia Sykes';
-const authorLink = 'https://aliciasykes.com';
+const authorName = 'NALIDE';
+const authorLink = 'https://nalide.com';
 const currentYear = new Date().getFullYear();
 
 const linkGroups = [
@@ -42,7 +42,6 @@ const linkGroups = [
       { label: 'About', href: aboutLink },
       { label: 'Source code', href: github },
       { label: 'Report an issue', href: `${github}/issues` },
-      { label: 'Sponsor', href: 'https://github.com/sponsors/Lissy93' },
     ],
   },
 ];

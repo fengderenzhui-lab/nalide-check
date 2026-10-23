@@ -164,7 +164,7 @@ const useJobs = (address: string, addressType: AddressType, jobs: JobSpec[]) => 
   // Initial fan-out: fire non-IP jobs immediately, mark unsupported as skipped
   useEffect(() => {
     if (keys.disableEverything) {
-      const reason = 'Web-Check has been temporarily disabled on this instance';
+      const reason = 'NALIDE has been temporarily disabled on this instance';
       jobs.forEach((j) => skipJob(j, reason));
       return;
     }

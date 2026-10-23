@@ -1,7 +1,7 @@
 {
-  "name": "Web Check",
-  "short_name": "Web Check",
-  "description": "Web Check is the all-in-one OSINT and security tool, for revealing the inner workings of any website",
+  "name": "NALIDE Check",
+  "short_name": "NALIDE",
+  "description": "NALIDE Check is the all-in-one OSINT and security tool, for revealing the inner workings of any website",
   "id": "/",
   "start_url": "/",
   "scope": "/",

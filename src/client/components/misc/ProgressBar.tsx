@@ -487,7 +487,7 @@ const ProgressLoader = ({ loadStatus, showModal, showJobDocs }: ProgressLoaderPr
                 </p>
               )}
               <AboutPageLink href="/checks" target="_blank" rel="noreferrer">
-                Learn More about Web-Check
+                Learn More about NALIDE
               </AboutPageLink>
             </Details>
             <DismissButton type="button" onClick={() => setHideLoader(true)}>

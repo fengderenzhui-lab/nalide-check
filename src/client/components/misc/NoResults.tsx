@@ -64,7 +64,7 @@ const VARIANT: Record<Kind, { title: string; description: string; reasons: strin
   },
   'api-down': {
     title: 'Service Unavailable',
-    description: 'Most checks failed because the Web-Check API could not be reached',
+    description: 'Most checks failed because the NALIDE API could not be reached',
     reasons: [
       'The API may be down, restarting or rate-limited',
       'A self-hosted instance might be misconfigured or offline',
@@ -77,11 +77,11 @@ const VARIANT: Record<Kind, { title: string; description: string; reasons: strin
     reasons: [
       'The administrator may have blocked this domain or IP range',
       'The instance may be configured to not run these checks',
-      'You can still scan this host from your own instance of Web-Check',
+      'You can still scan this host from your own instance of NALIDE',
     ],
   },
   disabled: {
-    title: 'Web-Check is Paused',
+    title: 'NALIDE is Paused',
     description: 'This instance has been temporarily disabled, so checks cannot run',
     reasons: [
       'The public instance may be paused to manage running costs',

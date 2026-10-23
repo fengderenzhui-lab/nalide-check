@@ -33,7 +33,7 @@ const getSkipMessage = (skipReason, check) => {
       'This is due to excess abuse and bot traffic making hosting unfordable. ' +
       "We're sorry for any inconvenience caused. " +
       'In the meantime, you can self-host your own instance, ' +
-      'see instructions in our repo, at: github.com/lissy93/web-check. ' +
+      'see instructions in our repo, at: github.com/fengderenzhui-lab/web-check. ' +
       'All checks will continue to fail until the `VITE_DISABLE_EVERYTHING` is unset.'
     );
   }

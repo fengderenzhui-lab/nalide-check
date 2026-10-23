@@ -5,7 +5,7 @@ import { checkIds } from '@/data/checks';
 
 const authorName = 'Alicia Sykes';
 const authorLink = 'https://aliciasykes.com';
-const repoLink = 'https://github.com/lissy93/web-check';
+const repoLink = 'https://github.com/fengderenzhui-lab/web-check';
 const licenseLink = `${repoLink}/blob/master/LICENSE`;
 const currentYear = new Date().getFullYear();
 
@@ -17,16 +17,16 @@ const elsewhere = [
 ---
 
 <PageLayout
-  title="About | Web Check"
-  description="What Web Check is, who makes it, how to support it, and its terms of use."
+  title="About | NALIDE"
+  description="What NALIDE is, who makes it, how to support it, and its terms of use."
   keywords="web check, about, open source, mit license, fair use, privacy"
   breadcrumbs={[
-    { name: 'Web Check', item: '' },
+    { name: 'NALIDE', item: '' },
     { name: 'About', item: 'about' },
   ]}
 >
   <section class="intro">
-    <h1>About Web Check</h1>
+    <h1>About NALIDE</h1>
     {about.map((paragraph) => (
       <p>{paragraph}</p>
     ))}
@@ -69,7 +69,7 @@ const elsewhere = [
   <section>
     <h2>License</h2>
     <p>
-      Web Check is distributed under the <a href={licenseLink}>MIT license</a>, ©{' '}
+      NALIDE is distributed under the <a href={licenseLink}>MIT license</a>, ©{' '}
       <a href={authorLink}>{authorName}</a>
       {currentYear}. It's free to use, modify and distribute in both personal and commercial
       settings.

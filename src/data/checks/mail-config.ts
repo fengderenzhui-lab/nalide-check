@@ -7,7 +7,7 @@ export default {
   description:
     "MX records say which servers receive a domain's mail. SPF lists the servers " +
     'allowed to send it. DKIM publishes a key that receivers use to check a message ' +
-    'was signed by the domain and not altered. Web Check looks for it under common ' +
+    'was signed by the domain and not altered. NALIDE looks for it under common ' +
     'selector names, so "Not found" does not prove there is no key. DMARC tells ' +
     'receivers what to do with mail that fails both SPF and DKIM. A policy of none ' +
     "only monitors, so the checklist ticks DMARC once it's set to quarantine or " +
